@@ -18,6 +18,10 @@
     # a different nixpkgs changes the store path and loses the upstream cachix
     # cache hits.
     claude-code.url = "github:sadjow/claude-code-nix";
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -92,6 +96,7 @@
             inputs.determinate.nixosModules.default
             ./config/modules/nix-settings.nix
             ./config/modules/claude-code.nix
+            ./config/modules/sops.nix
             ./config/profiles/${host.profile}/configuration.nix
             home-manager.nixosModules.home-manager
             {
