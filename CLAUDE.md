@@ -66,9 +66,10 @@ One directory here is a **Home Manager** module, imported from a profile's
 - `coding-ide/` — the `coding` IDE (yazi + zellij + nixvim). `default.nix` is
   the yazi/zellij workspace, `nvim.nix` the editor. Exposes one option,
   `programs.codingIde.clipboardProvider` (`wsl` | `osc52` | `none`), so each
-  profile picks how the clipboard is reached. Imported by wsl (`wsl`) and
-  orbstack (`osc52`). Pulls the unfree `claude-code` (see `claude-code.nix`
-  above), so an importing profile needs `nixpkgs.config.allowUnfree = true`.
+  profile picks how the clipboard is reached. Imported by wsl (`wsl`),
+  orbstack (`osc52`), and infra-t0 (`osc52`, default). Pulls the unfree
+  `claude-code` (see `claude-code.nix` above), so an importing profile needs
+  `nixpkgs.config.allowUnfree = true`.
 
 ### Profile matrix
 
@@ -76,8 +77,7 @@ One directory here is a **Home Manager** module, imported from a profile's
 |----------|---------------|-------|--------------------------------------------|
 | wsl      | x86_64-linux  | nixos | WSL2, Docker, Zen Browser, bleu rootCA     |
 | orbstack | aarch64-linux | nixos | LXC container inside OrbStack on macOS; coding-ide |
-| infra-t0 | x86_64-linux  | nixos | Bare-metal server, static IP 192.168.1.230 |
-| infra-t1 | x86_64-linux  | nixos | Bare-metal server                          |
+| infra-t0 | x86_64-linux  | nixos | Bare-metal server, static IP 192.168.1.230; coding-ide |
 
 ### Special args available in all modules
 

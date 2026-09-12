@@ -3,7 +3,6 @@
 {
   imports = [
     ./hardware.nix
-    ./virtualisation.nix
     ../../modules/boot-efi.nix
     ../../modules/locale-fr.nix
     ../../modules/openssh.nix
@@ -11,6 +10,10 @@
   ];
 
   nix.package = pkgs.nix;
+
+  # coding-ide (imported by home.nix) pulls the unfree claude-code, same as
+  # the wsl/orbstack profiles.
+  nixpkgs.config.allowUnfree = true;
 
   swapDevices = [
     {
@@ -41,14 +44,6 @@
       "1.1.1.1"
       "8.8.8.8"
     ];
-  };
-
-  hardware = {
-    graphics = {
-      enable = true;
-      enable32Bit = true;
-    };
-    enableRedistributableFirmware = true;
   };
 
   system.stateVersion = "26.05";
