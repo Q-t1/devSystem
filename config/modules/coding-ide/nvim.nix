@@ -12,14 +12,16 @@
   lib,
   config,
   profile,
+  kind,
   ...
 }:
 
 let
   # How Neovim reaches the system clipboard. Set by the profile via the
   # `programs.codingIde.clipboardProvider` option (declared in default.nix):
-  # "wsl" bridges to Windows (WSLg), "osc52" uses terminal escapes that work
-  # headless / over SSH (OrbStack containers), "none" leaves autodetection be.
+  # "wsl" bridges to Windows (WSLg), "pbcopy" is macOS' native clipboard,
+  # "osc52" uses terminal escapes that work headless / over SSH (remote
+  # containers), "none" leaves autodetection be.
   clipboardProvider = config.programs.codingIde.clipboardProvider;
 
   # WSL: try the fast native Wayland path (wl-copy/wl-paste) and fall back to
@@ -54,10 +56,28 @@ let
     }
   '';
 
+  # macOS: pbcopy/pbpaste are always present and talk to the real system
+  # clipboard, so no terminal round-trip (OSC 52) is needed — and unlike OSC 52,
+  # paste works too.
+  pbcopyClipboardLua = ''
+    vim.g.clipboard = {
+      name = "pbcopy",
+      copy = {
+        ["+"] = { "pbcopy" },
+        ["*"] = { "pbcopy" },
+      },
+      paste = {
+        ["+"] = { "pbpaste" },
+        ["*"] = { "pbpaste" },
+      },
+      cache_enabled = 0,
+    }
+  '';
+
   # OSC 52: the terminal emulator owns the clipboard, so yank works with no
-  # display server — the right choice inside a headless container (OrbStack)
-  # reached over a terminal. Paste over OSC 52 needs terminal support; where it
-  # is missing, `"+p` simply no-ops (yank still works).
+  # display server — the right choice inside a headless container reached over
+  # a terminal. Paste over OSC 52 needs terminal support; where it is missing,
+  # `"+p` simply no-ops (yank still works).
   osc52ClipboardLua = ''
     local osc52 = require("vim.ui.clipboard.osc52")
     vim.g.clipboard = {
@@ -70,6 +90,7 @@ let
   clipboardLua =
     {
       wsl = wslClipboardLua;
+      pbcopy = pbcopyClipboardLua;
       osc52 = osc52ClipboardLua;
       none = "";
     }
@@ -417,21 +438,29 @@ in
         servers = {
           # Nix. Point nixd at this flake so option completion/hover is the
           # real thing: `nixos.options` drives configuration.nix files and
-          # `home-manager.options` (the per-user submodule, extracted from the
-          # embedded HM) drives home.nix files, so typing `programs.` here
-          # completes against the modules actually in scope. Scoped to *this*
-          # profile's own config (`nixosConfigurations.${profile}`) since the
-          # module is shared across hosts. `${inputs.self}` is the flake's store
+          # `home-manager.options` drives home.nix files, so typing `programs.`
+          # here completes against the modules actually in scope. Scoped to
+          # *this* profile's own config since the module is shared across hosts,
+          # and which output holds it depends on the profile's kind: NixOS hosts
+          # embed Home Manager under `nixosConfigurations.<profile>`, while a
+          # standalone host (macos) is a bare `homeConfigurations.<profile>`
+          # with no NixOS options at all. `${inputs.self}` is the flake's store
           # path — option *names* come from the modules, not your values, so a
           # pinned snapshot is fine; nixpkgs.expr uses the flake's pinned nixpkgs.
           nixd = {
             enable = true;
             settings = {
               nixpkgs.expr = ''import (builtins.getFlake "${inputs.self}").inputs.nixpkgs { }'';
-              options = {
-                nixos.expr = ''(builtins.getFlake "${inputs.self}").nixosConfigurations.${profile}.options'';
-                home-manager.expr = ''(builtins.getFlake "${inputs.self}").nixosConfigurations.${profile}.options.home-manager.users.type.getSubOptions [ ]'';
-              };
+              options =
+                if kind == "nixos" then
+                  {
+                    nixos.expr = ''(builtins.getFlake "${inputs.self}").nixosConfigurations.${profile}.options'';
+                    home-manager.expr = ''(builtins.getFlake "${inputs.self}").nixosConfigurations.${profile}.options.home-manager.users.type.getSubOptions [ ]'';
+                  }
+                else
+                  {
+                    home-manager.expr = ''(builtins.getFlake "${inputs.self}").homeConfigurations.${profile}.options'';
+                  };
             };
           };
 
@@ -630,7 +659,8 @@ in
       end, { desc = "Click to edit (enter insert mode)" })
 
       -- System-clipboard bridge, chosen per profile (see clipboardProvider in
-      -- the let block: WSL → Windows tools, OrbStack → OSC 52 terminal escapes).
+      -- the let block: WSL → Windows tools, macOS → pbcopy/pbpaste, headless
+      -- containers → OSC 52 terminal escapes).
       ${clipboardLua}
 
       -- Select-to-copy: releasing a mouse drag-selection yanks it to the system
@@ -915,20 +945,25 @@ in
 
     # Formatters / linters / kube tooling that must be on Neovim's PATH.
     # (LSP server binaries are added automatically by the server options above.)
-    extraPackages = with pkgs; [
-      nixfmt
-      prettierd
-      stylua
-      shfmt
-      yamllint
-      helm-ls
-      kubeconform
-      kustomize
-      lazygit # full git UI, floated on <leader>gg (see extraConfigLua)
-      claude-code # `claude` CLI used by the claudecode.nvim integration
-      ripgrep # `rg` backs grug-far's find & replace (and Telescope live_grep)
-      wl-clipboard # wl-copy/wl-paste: the fast path for the clipboard bridge
-    ];
+    extraPackages =
+      with pkgs;
+      [
+        nixfmt
+        prettierd
+        stylua
+        shfmt
+        yamllint
+        helm-ls
+        kubeconform
+        kustomize
+        lazygit # full git UI, floated on <leader>gg (see extraConfigLua)
+        claude-code # `claude` CLI used by the claudecode.nvim integration
+        ripgrep # `rg` backs grug-far's find & replace (and Telescope live_grep)
+      ]
+      # wl-copy/wl-paste: the fast path for the WSL clipboard bridge only. It is
+      # a Linux-only package (it pulls wayland), so every other provider —
+      # notably macOS' pbcopy — must not drag it in.
+      ++ lib.optionals (clipboardProvider == "wsl") [ wl-clipboard ];
 
     # VSCode-style keybindings.
     #

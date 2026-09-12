@@ -31,7 +31,7 @@
     let
       lib = nixpkgs.lib;
       # Default account name, used by every profile that doesn't set its own
-      # `username` in host.nix (see orbstack/host.nix for an override example).
+      # `username` in host.nix (see macos/host.nix for an override example).
       username = "qt1";
       stateVersion = "26.05";
 
@@ -42,11 +42,16 @@
         let
           hostCfg = import "${profilesDir}/${name}/host.nix";
           hostUsername = hostCfg.username or username;
+          # macOS puts accounts under /Users, Linux under /home. A host.nix may
+          # still pin `homeDirectory` explicitly to override this.
+          isDarwin = lib.hasSuffix "-darwin" hostCfg.system;
         in
-        hostCfg // {
+        hostCfg
+        // {
           profile = name;
           username = hostUsername;
-          homeDirectory = "/home/${hostUsername}";
+          homeDirectory =
+            hostCfg.homeDirectory or (if isDarwin then "/Users/${hostUsername}" else "/home/${hostUsername}");
         }
       ) (lib.filterAttrs (_: type: type == "directory") (builtins.readDir profilesDir));
 
@@ -74,7 +79,12 @@
           };
           extraSpecialArgs = {
             inherit inputs;
-            inherit (host) profile system username;
+            inherit (host)
+              profile
+              system
+              username
+              kind
+              ;
           };
           modules = [ (mkHmModule host) ];
         };
@@ -85,7 +95,12 @@
           system = host.system;
           specialArgs = {
             inherit inputs;
-            inherit (host) profile system username;
+            inherit (host)
+              profile
+              system
+              username
+              kind
+              ;
           };
 
           modules = [
@@ -100,11 +115,17 @@
               home-manager.backupFileExtension = "backup";
               home-manager.extraSpecialArgs = {
                 inherit inputs;
-                inherit (host) profile system username;
+                inherit (host)
+                  profile
+                  system
+                  username
+                  kind
+                  ;
               };
               home-manager.users.${host.username} = mkHmModule host;
             }
-          ] ++ lib.optionals (host.kind == "nixos" && host.profile == "wsl") [
+          ]
+          ++ lib.optionals (host.kind == "nixos" && host.profile == "wsl") [
             inputs.nixos-wsl.nixosModules.wsl
           ];
         };
@@ -113,7 +134,11 @@
 
       allNixosHosts = lib.filterAttrs (_: host: host.kind == "nixos") hosts;
 
-      systems = [ "aarch64-linux" "x86_64-linux" ];
+      systems = [
+        "aarch64-darwin"
+        "aarch64-linux"
+        "x86_64-linux"
+      ];
     in
     flake-utils.lib.eachSystem systems (system: {
       formatter = nixpkgs.legacyPackages.${system}.nixfmt;

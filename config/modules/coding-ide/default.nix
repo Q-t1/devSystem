@@ -156,6 +156,7 @@ in
   options.programs.codingIde.clipboardProvider = lib.mkOption {
     type = lib.types.enum [
       "wsl"
+      "pbcopy"
       "osc52"
       "none"
     ];
@@ -164,8 +165,9 @@ in
     description = ''
       How the IDE's Neovim and zellij reach the system clipboard.
       "wsl" bridges to Windows via wl-copy with a clip.exe/PowerShell fallback
-      (WSLg); "osc52" uses terminal OSC 52 escapes, which work headless / over
-      SSH (e.g. an OrbStack container); "none" leaves Neovim's autodetection be.
+      (WSLg); "pbcopy" uses macOS' native pbcopy/pbpaste; "osc52" uses terminal
+      OSC 52 escapes, which work headless / over SSH (e.g. a remote container);
+      "none" leaves Neovim's autodetection be.
     '';
   };
 
@@ -347,10 +349,10 @@ in
         theme = "catppuccin-mocha";
 
         # Mouse drag-select in a (non-Neovim) pane copies straight to the system
-        # clipboard. On WSL that routes through clip.exe (copy_command below);
-        # elsewhere zellij falls back to OSC 52. Neovim panes keep their own
-        # mouse handling (mouse=a), since Neovim requests mouse tracking and
-        # zellij forwards events to it.
+        # clipboard. On WSL that routes through clip.exe and on macOS through
+        # pbcopy (copy_command below); elsewhere zellij falls back to OSC 52.
+        # Neovim panes keep their own mouse handling (mouse=a), since Neovim
+        # requests mouse tracking and zellij forwards events to it.
         mouse_mode = true;
         copy_on_select = true;
       }
@@ -358,6 +360,10 @@ in
         # WSL: bypass OSC 52 and hand the selection to Windows directly —
         # reliable regardless of WSLg's Wayland state.
         copy_command = "clip.exe";
+      }
+      // lib.optionalAttrs (config.programs.codingIde.clipboardProvider == "pbcopy") {
+        # macOS: the real system clipboard, no terminal round-trip needed.
+        copy_command = "pbcopy";
       };
 
       # Full-screen lazygit tab, launched by `gitview`. Alt-t still adds a

@@ -13,6 +13,12 @@ Apply a profile (NixOS):
 sudo nixos-rebuild switch --flake .#<profile>
 ```
 
+Apply a standalone Home Manager profile (macOS — Nix there is Determinate Nix,
+with no NixOS/nix-darwin layer):
+```
+home-manager switch --flake .#macos
+```
+
 Format Nix files:
 ```
 nix fmt
@@ -26,6 +32,9 @@ nix build --print-out-paths '.#nixosConfigurations.<profile>.config.system.build
   --extra-experimental-features flakes
 ```
 
+For `kind = "home"` profiles the attribute is `homeConfigurations.<profile>.activationPackage`
+instead.
+
 ## Architecture
 
 ### Profile auto-discovery
@@ -37,9 +46,14 @@ nix build --print-out-paths '.#nixosConfigurations.<profile>.config.system.build
 ```
 
 - `kind = "nixos"` → entry goes into `nixosConfigurations`, combining `configuration.nix` + Home Manager inline
-- `kind = "home"` → entry goes into `homeConfigurations` (standalone Home Manager only)
+- `kind = "home"` → entry goes into `homeConfigurations` (standalone Home Manager only); no `configuration.nix` is read
 
-Adding a new host requires only a new directory with `host.nix`, `configuration.nix`, and `home.nix` — no edits to `flake.nix`.
+Two optional fields override flake-wide defaults (see `config/profiles/macos/host.nix`):
+
+- `username` — defaults to `"qt1"`
+- `homeDirectory` — defaults to `/Users/<username>` on a `*-darwin` system, `/home/<username>` otherwise
+
+Adding a new host requires only a new directory with `host.nix`, `home.nix`, and — for `kind = "nixos"` — `configuration.nix`; no edits to `flake.nix`.
 
 ### Layer order (NixOS hosts)
 
@@ -47,6 +61,20 @@ Adding a new host requires only a new directory with `host.nix`, `configuration.
 2. `config/profiles/<profile>/configuration.nix` — system-level config; imports hardware, modules, etc.
 3. `config/common/home.nix` — shared Home Manager base (zsh, git, neovim, zed, nil/nixd LSPs)
 4. `config/profiles/<profile>/home.nix` — profile-specific Home Manager additions
+
+### Layer order (standalone Home hosts — `macos`)
+
+There is no system layer: Determinate Nix owns `/nix` and `/etc/nix/nix.conf`,
+so `nix-settings.nix` / `claude-code.nix` (both NixOS modules) do not apply.
+`mkHome` in `flake.nix` covers what they would have: it instantiates nixpkgs
+with the `claude-code` overlay and `allowUnfree = true`.
+
+1. `config/common/home.nix` — shared Home Manager base
+2. `config/profiles/macos/home.nix` — profile-specific additions
+
+Anything the shared base pulls in must therefore evaluate on `aarch64-darwin`;
+Linux-only packages need a `lib.optionals pkgs.stdenv.hostPlatform.isLinux`
+guard (see `ghostty.terminfo` in `config/common/home.nix`).
 
 ### Reusable modules (`config/modules/`)
 
@@ -65,19 +93,22 @@ One directory here is a **Home Manager** module, imported from a profile's
 `home.nix` rather than its `configuration.nix`:
 - `coding-ide/` — the `coding` IDE (yazi + zellij + nixvim). `default.nix` is
   the yazi/zellij workspace, `nvim.nix` the editor. Exposes one option,
-  `programs.codingIde.clipboardProvider` (`wsl` | `osc52` | `none`), so each
-  profile picks how the clipboard is reached. Imported by wsl (`wsl`) and
-  orbstack (`osc52`). Pulls the unfree `claude-code` (see `claude-code.nix`
-  above), so an importing profile needs `nixpkgs.config.allowUnfree = true`.
+  `programs.codingIde.clipboardProvider` (`wsl` | `pbcopy` | `osc52` | `none`),
+  so each profile picks how the clipboard is reached — this also gates the
+  Linux-only `wl-clipboard` dependency, which only the `wsl` provider pulls in.
+  Imported by wsl (`wsl`) and macos (`pbcopy`). Pulls the unfree `claude-code`
+  (see `claude-code.nix` above), so an importing NixOS profile needs
+  `nixpkgs.config.allowUnfree = true`; `kind = "home"` profiles get it from
+  `mkHome`.
 
 ### Profile matrix
 
-| Profile  | System        | Kind  | Notes                                      |
-|----------|---------------|-------|--------------------------------------------|
-| wsl      | x86_64-linux  | nixos | WSL2, Docker, Zen Browser, bleu rootCA     |
-| orbstack | aarch64-linux | nixos | LXC container inside OrbStack on macOS; coding-ide |
-| infra-t0 | x86_64-linux  | nixos | Bare-metal server, static IP 192.168.1.230 |
-| infra-t1 | x86_64-linux  | nixos | Bare-metal server                          |
+| Profile  | System         | Kind  | Notes                                      |
+|----------|----------------|-------|--------------------------------------------|
+| wsl      | x86_64-linux   | nixos | WSL2, Docker, Zen Browser, bleu rootCA     |
+| macos    | aarch64-darwin | home  | Determinate Nix on macOS, user `quentin`; coding-ide |
+| infra-t0 | x86_64-linux   | nixos | Bare-metal server, static IP 192.168.1.230 |
+| infra-t1 | x86_64-linux   | nixos | Bare-metal server                          |
 
 ### Special args available in all modules
 
@@ -85,3 +116,5 @@ One directory here is a **Home Manager** module, imported from a profile's
 - `username` — `"qt1"`
 - `profile` — the profile name string
 - `system` — the system string (e.g. `"x86_64-linux"`)
+- `kind` — `"nixos"` or `"home"`; used by `coding-ide/nvim.nix` to point nixd at
+  the right flake output for option completion

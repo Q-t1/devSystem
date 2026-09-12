@@ -4,17 +4,21 @@
   programs.nh.enable = true;
 
   programs.home-manager.enable = true;
-  home.packages = with pkgs; [
-    nil
-    nixd
-    package-version-server
-    cachix
+  home.packages =
+    with pkgs;
+    [
+      nil
+      nixd
+      package-version-server
+      cachix
 
-    curl
-    wget
-
-    ghostty.terminfo
-  ];
+      curl
+      wget
+    ]
+    # Ghostty's terminfo entry, so `TERM=xterm-ghostty` resolves on hosts we
+    # SSH into from Ghostty. nixpkgs only builds ghostty on Linux; on darwin the
+    # Ghostty.app install already ships its own terminfo, so skip it there.
+    ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux [ ghostty.terminfo ];
 
   programs.zsh = {
     enable = true;
