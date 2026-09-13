@@ -34,6 +34,33 @@ rebuilds need no flags. Keep the `determinate` input reasonably current
 (`nix flake update determinate`): `install.determinate.systems` only carries the
 current stable build, and a stale pin falls back to compiling Nix from source.
 
+## homelab-1: cloudflared microVM
+
+homelab-1 runs [microvm.nix](https://github.com/microvm-nix/microvm.nix) guests,
+declared in `config/profiles/homelab-1/microvms.nix`. They sit on a NAT'd
+bridge (`microvm`, 10.100.0.0/24, host at .1) and are built, installed and
+restarted by `nixos-rebuild switch`.
+
+`cloudflared` (10.100.0.2) runs a dashboard-managed Cloudflare Tunnel — the
+entrypoint into the local infrastructure. It stays stopped until its tunnel
+token is on the host. Create the tunnel in the Cloudflare Zero Trust dashboard
+(connector: cloudflared), copy its token, then on homelab-1, after the first
+switch:
+
+~~~
+sudo install -m 0400 -o microvm -g kvm /dev/stdin /var/lib/microvms/cloudflared/tunnel-token
+# paste the token, then Ctrl-D
+sudo systemctl start microvm@cloudflared
+~~~
+
+The token is only read when the VM boots: after rotating it, run
+`sudo systemctl restart microvm@cloudflared`. Tunnel logs are on the host, in
+`journalctl -u microvm@cloudflared`.
+
+Routes (public hostnames, private networks) are configured in the dashboard.
+LAN origins see the tunnel's traffic coming from 192.168.1.230; a service on
+homelab-1 itself also needs its port opened in the host firewall.
+
 # For standalone Home-Manager profiles (macOS)
 
 Nix on macOS comes from [Determinate Nix](https://determinate.systems) — there

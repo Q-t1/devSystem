@@ -3,6 +3,7 @@
 {
   imports = [
     ./hardware.nix
+    ./microvms.nix
     ../../modules/boot-efi.nix
     ../../modules/locale-fr.nix
     ../../modules/openssh.nix

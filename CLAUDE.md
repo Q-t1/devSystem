@@ -117,13 +117,31 @@ One directory here is a **Home Manager** module, imported from a profile's
   `nixpkgs.config.allowUnfree = true`; `kind = "home"` profiles get it from
   `mkHome`.
 
+### MicroVMs (homelab-1)
+
+`config/profiles/homelab-1/microvms.nix` imports
+`inputs.microvm.nixosModules.host` and declares the guests
+(`microvm.vms.<name>.config`, one file per guest under `microvms/`). Guests are
+evaluated with the host's `pkgs` but get none of the flake's special args or
+global modules (Determinate, `nix-settings.nix`), and each sets its own
+`system.stateVersion`.
+
+- Network: bridge `microvm`, 10.100.0.1/24, NAT'd out of `enp2s0`. It's
+  systemd-networkd, which manages only that bridge and the `vm-*` tap devices;
+  `enp2s0` stays on scripted networking, so networkd's wait-online is disabled.
+  Each guest has a static address and a fixed MAC.
+- `cloudflared` (10.100.0.2): a dashboard-managed Cloudflare Tunnel. The token
+  is a host file passed in as a systemd credential (`microvm.credentialFiles`,
+  qemu runner only) and `microvm@cloudflared` is gated on it existing — see
+  the README for provisioning.
+
 ### Profile matrix
 
 | Profile   | System         | Kind  | Notes                                      |
 |-----------|----------------|-------|--------------------------------------------|
 | wsl       | x86_64-linux   | nixos | WSL2, Docker, Zen Browser, bleu rootCA     |
 | macos     | aarch64-darwin | home  | Determinate Nix on macOS, user `quentin`; coding-ide |
-| homelab-1 | x86_64-linux   | nixos | Bare-metal server, minimal: static IP 192.168.1.230 + DNS + SSH |
+| homelab-1 | x86_64-linux   | nixos | Bare-metal server: static IP 192.168.1.230 + DNS + SSH; microVM host (cloudflared) |
 
 ### Special args available in all modules
 

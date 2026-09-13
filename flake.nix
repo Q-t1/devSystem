@@ -18,6 +18,12 @@
     # a different nixpkgs changes the store path and loses the upstream cachix
     # cache hits.
     claude-code.url = "github:sadjow/claude-code-nix";
+    # Lightweight NixOS guests; homelab-1 imports the host module (see
+    # config/profiles/homelab-1/microvms.nix).
+    microvm = {
+      url = "github:microvm-nix/microvm.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     flake-utils.url = "github:numtide/flake-utils";
   };
 
