@@ -25,6 +25,16 @@
   # unregistered with git.
   programs.git.lfs.enable = true;
 
+  # Ghostty — the app itself stays a Homebrew cask (nixpkgs only builds ghostty
+  # on Linux), so Home Manager only writes ~/.config/ghostty/config. Catppuccin
+  # Mocha is one of Ghostty's bundled themes and matches the palette used by
+  # bat/fzf (config/common/home.nix) and the coding IDE.
+  programs.ghostty = {
+    enable = true;
+    package = null;
+    settings.theme = "Catppuccin Mocha";
+  };
+
   # pipx drops user-installed CLI entry points here.
   home.sessionPath = [ "$HOME/.local/bin" ];
 

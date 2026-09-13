@@ -32,20 +32,23 @@ let
 
   # Starts Neovim listening on a session-scoped socket so yazi, fif, and
   # any other pane in the same zellij session can open files into the same
-  # instance via --remote-tab, giving a native nvim tabline instead of
-  # zellij stacked panes.
+  # instance via --remote, giving a barbar buffer tabline instead of zellij
+  # stacked panes.
   codingNvim = pkgs.writeShellScript "coding-nvim" ''
     sock="/tmp/nvim-$ZELLIJ_SESSION_NAME.sock"
     exec ${nvimBin} --listen "$sock" "$@"
   '';
 
-  # Opens $1 in the session's Neovim via its socket (--remote-tab creates a
-  # new nvim tab), then focuses the editor pane. Called from yazi (left pane);
-  # move-focus Right always lands on the editor column.
+  # Opens $1 in the session's Neovim via its socket, then focuses the editor
+  # pane. CodingIdeFocusEditor (nvim.nix) first moves nvim off any terminal
+  # or panel window so --remote's `:drop` opens the file as a buffer (a barbar
+  # tab) in an editor window. Called from yazi (left pane); move-focus Right
+  # always lands on the editor column.
   openFileInNvim = pkgs.writeShellScript "open-file-in-nvim" ''
     file=$(${pkgs.coreutils}/bin/realpath -- "$1")
     sock="/tmp/nvim-$ZELLIJ_SESSION_NAME.sock"
-    ${nvimBin} --server "$sock" --remote-tab "$file"
+    ${nvimBin} --server "$sock" --remote-expr "v:lua.CodingIdeFocusEditor()" >/dev/null
+    ${nvimBin} --server "$sock" --remote "$file"
     ${zellijBin} action move-focus Right
   '';
 
@@ -85,7 +88,8 @@ let
     abs=$(realpath -- "$file")
     sock="/tmp/nvim-$ZELLIJ_SESSION_NAME.sock"
     if [ -S "$sock" ]; then
-      ${nvimBin} --server "$sock" --remote-tab "$abs"
+      ${nvimBin} --server "$sock" --remote-expr "v:lua.CodingIdeFocusEditor()" >/dev/null
+      ${nvimBin} --server "$sock" --remote "$abs"
       ${nvimBin} --server "$sock" --remote-send "<Esc>:''${line}<CR>"
       ${zellijBin} action move-focus Right
     else
@@ -111,7 +115,8 @@ let
     abs=$(realpath -- "$file")
     sock="/tmp/nvim-$ZELLIJ_SESSION_NAME.sock"
     if [ -S "$sock" ]; then
-      ${nvimBin} --server "$sock" --remote-tab "$abs"
+      ${nvimBin} --server "$sock" --remote-expr "v:lua.CodingIdeFocusEditor()" >/dev/null
+      ${nvimBin} --server "$sock" --remote "$abs"
       ${zellijBin} action move-focus Right
     else
       ${nvimBin} "$abs"
@@ -264,7 +269,8 @@ in
         sock="/tmp/nvim-''${ZELLIJ_SESSION_NAME}.sock"
         if [[ -S "''${sock}" ]]; then
           ${zellijBin} action move-focus Up
-          ${nvimBin} --server "''${sock}" --remote-tab "''${abs}"
+          ${nvimBin} --server "''${sock}" --remote-expr "v:lua.CodingIdeFocusEditor()" >/dev/null
+          ${nvimBin} --server "''${sock}" --remote "''${abs}"
           ${nvimBin} --server "''${sock}" --remote-send "<Esc>:''${line}<CR>"
         else
           nvim "''${abs}" "+''${line}"
@@ -297,7 +303,7 @@ in
         };
 
         # Open (Enter) sends the picked file to the session's Neovim via its
-        # socket (--remote-tab), which opens it as a new nvim tab. block=false
+        # socket (--remote), which opens it as a buffer / barbar tab. block=false
         # keeps yazi visible as the sidebar. realpath is required: yazi may pass
         # a path relative to its cwd, but the socket command resolves against
         # nvim's cwd → wrong file from a subdir without it.
@@ -315,6 +321,32 @@ in
           }
         ];
       };
+
+      # Mouse: a left click opens a file (in the Neovim pane) or enters a folder,
+      # like VSCode's explorer; a right click anywhere in the list — empty
+      # folders included — goes up to the parent folder, since the single-column
+      # sidebar (mgr.ratio) has no parent column to click in. Overrides the
+      # preset, where a left click only moves the cursor and a right click opens.
+      initLua = ''
+        function Entity:click(event, up)
+          if up or not event.is_left then
+            return
+          end
+          ya.emit("reveal", { self._file.url })
+          ya.emit(self._file.cha.is_dir and "enter" or "open", {})
+        end
+
+        local current_click = Current.click
+        function Current:click(event, up)
+          if event.is_right then
+            if not up then
+              ya.emit("leave", {})
+            end
+            return
+          end
+          current_click(self, event, up)
+        end
+      '';
 
       # Replace yazi's built-in fd/rg search (which can't open at a matched line
       # and doesn't route content-search results through the `edit` opener) with
@@ -348,12 +380,18 @@ in
         # share one palette.
         theme = "catppuccin-mocha";
 
+        # Hovering a pane focuses it, and a click on a pane that isn't focused yet
+        # also reaches the app in it, so one click in yazi or Neovim acts right
+        # away instead of first spending itself on focus. Stacked panes still
+        # need a click to expand.
         # Mouse drag-select in a (non-Neovim) pane copies straight to the system
         # clipboard. On WSL that routes through clip.exe and on macOS through
         # pbcopy (copy_command below); elsewhere zellij falls back to OSC 52.
         # Neovim panes keep their own mouse handling (mouse=a), since Neovim
         # requests mouse tracking and zellij forwards events to it.
         mouse_mode = true;
+        focus_follows_mouse = true;
+        mouse_click_through = true;
         copy_on_select = true;
       }
       // lib.optionalAttrs (config.programs.codingIde.clipboardProvider == "wsl") {
@@ -385,13 +423,13 @@ in
       # IDE workspace launched by the `coding` shell function:
       #
       #   ┌ files ┐┌──────── editor (nvim) ────────┐
-      #   │ yazi  ││ [file1] │ [file2] │ [file3] … │  ← nvim tabline (top)
+      #   │ yazi  ││ [file1] │ [file2] │ [file3] … │  ← barbar tabline (top)
       #   │       │├────────── terminal ───────────┤
       #   └───────┘└───────────────────────────────┘
       #
       # Neovim runs with --listen on a session-scoped socket (coding-nvim wrapper).
-      # Enter on a file in yazi calls open-file-in-nvim which does --remote-tab,
-      # opening the file as a new nvim tab. The nvim tabline at the top of the
+      # Enter on a file in yazi calls open-file-in-nvim which does --remote,
+      # opening the file as a buffer. The barbar tabline at the top of the
       # editor pane is the open-files list. Alt-t adds a new zellij terminal tab.
       layouts.coding = ''
         layout {

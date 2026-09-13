@@ -128,6 +128,10 @@ in
     # (followed) nixpkgs so nixvim stops warning that the input `follows`
     # diverges from its own tested pin.
     nixpkgs.source = inputs.nixpkgs;
+    # That instance is nixvim's own, so mkHome's / the NixOS profile's
+    # allowUnfree doesn't reach it. barbar (the tabline) is the one plugin that
+    # needs it: nixpkgs classes its JSON license as unfree.
+    nixpkgs.config.allowUnfreePredicate = pkg: lib.getName pkg == "barbar.nvim";
 
     # Make "+/"* the default yank/paste registers so plain y/p use the system
     # clipboard. The provider itself (vim.g.clipboard) is defined in
@@ -184,9 +188,16 @@ in
       splitright = true;
       splitbelow = true;
 
-      # Always show the tabline so open files are visible as horizontal tabs at
-      # the top of the editor pane (files arrive via --remote-tab from yazi/fif).
+      # Always show the tabline (barbar's buffer tabs) so open files are
+      # visible as horizontal tabs at the top of the editor pane, even when only
+      # one is open.
       showtabline = 2;
+
+      # No reserved command-line row under lualine, so the statusline sits flush
+      # against the zellij pane frame instead of leaving a blank line. ui2
+      # (extraConfigLua) shows messages in a float so cmdheight=0 doesn't turn
+      # them into hit-enter prompts.
+      cmdheight = 0;
 
       # Spell checking is turned on per-filetype (markdown/gitcommit/text) by an
       # autocmd in extraConfigLua, not globally — code buffers stay quiet. These
@@ -200,22 +211,28 @@ in
     };
 
     # Catppuccin Mocha (the dark flavour). Its default integrations already
-    # style telescope, bufferline, gitsigns, blink-cmp, trouble,
-    # navic/barbecue, notify, indent-blankline, treesitter & which-key, so the
-    # whole IDE follows the theme without per-plugin wiring. Catppuccin
-    # italicises comments by default (parity with the old vscode theme), and
-    # term_colors themes the toggleterm / :terminal palette to match.
+    # style telescope, gitsigns, blink-cmp, trouble, navic/barbecue, notify,
+    # indent-blankline, treesitter & which-key, so the whole IDE follows the
+    # theme without per-plugin wiring. barbar is not among those defaults, so
+    # it is switched on explicitly. Catppuccin italicises comments by default
+    # (parity with the old vscode theme), and term_colors themes the
+    # toggleterm / :terminal palette to match.
     colorschemes.catppuccin = {
       enable = true;
       settings = {
         flavour = "mocha";
         term_colors = true;
+        integrations.barbar = true;
       };
     };
 
     plugins = {
       # ---- UI / look & feel -------------------------------------------------
       web-devicons.enable = true; # needs a Nerd Font in the terminal
+      # VSCode-style tabline: one tab per open file buffer, with devicons,
+      # modified dots, click-to-switch and middle-click-to-close. Files sent
+      # from yazi/fif land here (see CodingIdeFocusEditor in extraConfigLua).
+      barbar.enable = true;
       which-key.enable = true;
       indent-blankline.enable = true;
       todo-comments.enable = true;
@@ -567,6 +584,10 @@ in
     # deprecated on 0.11+; its warning would otherwise pop up as a startup
     # toast now that nvim-notify intercepts vim.notify.
     extraConfigLua = ''
+      -- ui2 (experimental core messages/cmdline UI): with cmdheight=0 (opts)
+      -- messages go to an ephemeral float instead of hit-enter prompts.
+      require("vim._core.ui2").enable({ msg = { targets = "msg" } })
+
       vim.lsp.config("helm_ls", {
         cmd = { "helm_ls", "serve" },
         filetypes = { "helm" },
@@ -581,24 +602,37 @@ in
 
       -- The file manager is yazi, running as its own persistent left zellij pane
       -- (see home.nix: the `coding` layout). Neovim starts with --listen on a
-      -- session-scoped socket; yazi/fif open files via --remote-tab so they appear
-      -- as nvim tabs in the tabline at the top of the editor pane. <S-h>/<S-l>
-      -- navigate nvim tabs; <C-b>/<leader>e move focus to the yazi pane.
+      -- session-scoped socket; yazi/fif open files via --remote so they appear
+      -- as buffers in the barbar tabline at the top of the editor pane.
+      -- <S-h>/<S-l> cycle those buffers; <C-b>/<leader>e move focus to yazi.
 
-      -- When the first file arrives via --remote-tab, Neovim opens a new tab
-      -- beside the initial empty scratch. Close the scratch so only real file
-      -- tabs remain. `once = true` makes the autocmd self-remove after firing.
-      vim.api.nvim_create_autocmd("TabNewEntered", {
-        desc = "Close initial empty scratch tab on first file open",
-        once = true,
-        callback = function()
-          if vim.fn.tabpagenr() == 2 then
-            local win = vim.fn.tabpagewinnr(1)
-            local buf = vim.fn.tabpagebuflist(1)[win]
-            if vim.api.nvim_buf_get_name(buf) == "" then
-              vim.cmd("1tabclose")
+      -- --remote runs `:drop` in whatever window is current, which may be the
+      -- Claude terminal split or a Trouble/grug-far panel. The openers call
+      -- this first (via --remote-expr) so the file lands in a normal editor
+      -- window instead. The initial empty scratch buffer needs no cleanup:
+      -- `:drop` from an unnamed, unmodified buffer reuses it.
+      function _G.CodingIdeFocusEditor()
+        local function is_editor(win)
+          local buf = vim.api.nvim_win_get_buf(win)
+          return vim.api.nvim_win_get_config(win).relative == "" and vim.bo[buf].buftype == ""
+        end
+        if not is_editor(0) then
+          for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+            if is_editor(win) then
+              vim.api.nvim_set_current_win(win)
+              break
             end
           end
+        end
+        return ""
+      end
+
+      -- barbar shows every listed buffer, and terminal buffers (the Claude
+      -- split) are listed by default. Unlist them so the tabline holds files only.
+      vim.api.nvim_create_autocmd("TermOpen", {
+        desc = "Keep terminal buffers out of the barbar tabline",
+        callback = function(args)
+          vim.bo[args.buf].buflisted = false
         end,
       })
 
@@ -646,17 +680,6 @@ in
       -- Search panel). Opens a buffer listing every match across the project;
       -- edit the "Replace" line and :w / <leader>sr-apply to rewrite all files.
       require("grug-far").setup({})
-
-      -- VSCode-style: a single left click in an editable file drops you
-      -- straight into insert ("edit") mode. Guarded to normal file buffers so
-      -- it never fires in the terminal or other special windows;
-      -- bound in normal mode only so click-drag text selection still works
-      -- (a drag ends in visual mode, where this mapping does not apply).
-      vim.keymap.set("n", "<LeftRelease>", function()
-        if vim.bo.buftype == "" and vim.bo.modifiable and not vim.bo.readonly then
-          vim.cmd("startinsert")
-        end
-      end, { desc = "Click to edit (enter insert mode)" })
 
       -- System-clipboard bridge, chosen per profile (see clipboardProvider in
       -- the let block: WSL → Windows tools, macOS → pbcopy/pbpaste, headless
@@ -941,6 +964,18 @@ in
       vim.keymap.set("n", "<leader>qd", function()
         require("persistence").stop()
       end, { desc = "Stop saving session" })
+
+      -- Keep barbar's tab order and pins across session restores: barbar
+      -- stashes them in a global on its `SessionSavePre` event, so sessions
+      -- must save globals and persistence's pre-save hook must relay the event.
+      vim.opt.sessionoptions:append("globals")
+      vim.api.nvim_create_autocmd("User", {
+        pattern = "PersistenceSavePre",
+        desc = "Save barbar buffer order in the session",
+        callback = function()
+          vim.api.nvim_exec_autocmds("User", { pattern = "SessionSavePre" })
+        end,
+      })
     '';
 
     # Formatters / linters / kube tooling that must be on Neovim's PATH.
@@ -1347,31 +1382,32 @@ in
         options.desc = "Location list (Trouble)";
       }
 
-      # -- File tabs (Neovim tabline) ----------------------------------------
-      # Files are opened as nvim tabs (--remote-tab via yazi/fif); <S-h>/<S-l>
-      # navigate tabs and <leader>bd closes the current one.
+      # -- File tabs (barbar tabline) ----------------------------------------
+      # Each open file is a buffer shown as a barbar tab (--remote via
+      # yazi/fif); <S-h>/<S-l> cycle them and <leader>bd closes the current
+      # one without collapsing the window layout.
       {
         mode = "n";
         key = "<S-h>";
-        action = "<cmd>tabprev<cr>";
+        action = "<cmd>BufferPrevious<cr>";
         options.desc = "Previous file tab";
       }
       {
         mode = "n";
         key = "<S-l>";
-        action = "<cmd>tabnext<cr>";
+        action = "<cmd>BufferNext<cr>";
         options.desc = "Next file tab";
       }
       {
         mode = "n";
         key = "<C-Tab>"; # best effort
-        action = "<cmd>tabnext<cr>";
+        action = "<cmd>BufferNext<cr>";
         options.desc = "Next file tab";
       }
       {
         mode = "n";
         key = "<leader>bd";
-        action = "<cmd>q<cr>";
+        action = "<cmd>BufferClose<cr>";
         options.desc = "Close file";
       }
       {
