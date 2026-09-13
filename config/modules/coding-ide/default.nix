@@ -34,8 +34,17 @@ let
   # any other pane in the same zellij session can open files into the same
   # instance via --remote, giving a barbar buffer tabline instead of zellij
   # stacked panes.
+  #
+  # It also names its own zellij tab "Coding | <folder>": a layout can't
+  # interpolate the directory, so a fresh `coding` session would otherwise keep
+  # the static layout name. The tab is resolved from this pane's id rather than
+  # "the focused tab", so switching tabs during startup can't rename the wrong one.
   codingNvim = pkgs.writeShellScript "coding-nvim" ''
     sock="/tmp/nvim-$ZELLIJ_SESSION_NAME.sock"
+    tab_id=$(${zellijBin} action list-panes --tab --json 2>/dev/null |
+      ${pkgs.jq}/bin/jq -r --argjson pane "$ZELLIJ_PANE_ID" \
+        '.[] | select((.is_plugin | not) and .id == $pane) | .tab_id' 2>/dev/null)
+    [ -n "$tab_id" ] && ${zellijBin} action rename-tab --tab-id "$tab_id" "Coding | ''${PWD##*/}"
     exec ${nvimBin} --listen "$sock" "$@"
   '';
 
@@ -206,7 +215,7 @@ in
             return
           fi
           local dir="''${target:A}" # zsh: resolve to an absolute path
-          local tab_name="coding: ''${dir:t}"
+          local tab_name="Coding | ''${dir:t}"
           if [[ -n "$ZELLIJ" ]]; then
             zellij action new-tab --layout coding --cwd "$dir" --name "$tab_name"
           else
@@ -436,7 +445,8 @@ in
             default_tab_template {
                 ${zellijChrome}
             }
-            tab name="code" focus=true {
+            // Placeholder: coding-nvim renames it to "Coding | <folder>".
+            tab name="Coding" focus=true {
                 pane split_direction="vertical" {
                     pane size="24%" name="files" focus=true {
                         command "${config.programs.yazi.finalPackage}/bin/yazi"
