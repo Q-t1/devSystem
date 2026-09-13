@@ -12,6 +12,28 @@ Example:
 sudo nixos-rebuild switch --flake .#wsl
 ~~~
 
+## First switch onto Determinate Nix
+
+Every NixOS profile runs [Determinate Nix](https://determinate.systems), whose
+`nix` package comes from the `determinate` flake input rather than nixpkgs, so
+it is not in `cache.nixos.org`. On a host that is not yet running
+`determinate-nixd`, the daemon doing the build has no Determinate substituter
+configured — `nix.settings` only applies *after* activation — so it would
+compile Nix (and `sentry-native`) from source. Pass the cache on the command
+line for that one bootstrap switch:
+
+~~~
+sudo nixos-rebuild switch --flake .#<profile> \
+  --option extra-substituters https://install.determinate.systems \
+  --option extra-trusted-public-keys cache.flakehub.com-3:hJuILl5sVK4iKm86JzgdXW12Y2Hwd5G07qKtHTOcDCM=
+~~~
+
+Afterwards `determinate-nixd` writes those substituters into `/etc/nix/nix.conf`
+itself (the NixOS-generated config moves to `nix.custom.conf`), so subsequent
+rebuilds need no flags. Keep the `determinate` input reasonably current
+(`nix flake update determinate`): `install.determinate.systems` only carries the
+current stable build, and a stale pin falls back to compiling Nix from source.
+
 # For standalone Home-Manager profiles (macOS)
 
 Nix on macOS comes from [Determinate Nix](https://determinate.systems) — there

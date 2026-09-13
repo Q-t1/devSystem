@@ -76,6 +76,22 @@ Anything the shared base pulls in must therefore evaluate on `aarch64-darwin`;
 Linux-only packages need a `lib.optionals pkgs.stdenv.hostPlatform.isLinux`
 guard (see `ghostty.terminfo` in `config/common/home.nix`).
 
+### Determinate Nix (NixOS hosts)
+
+`flake.nix` applies `inputs.determinate.nixosModules.default` to every
+`kind = "nixos"` profile, so `nix.package` is the `determinate` input's build,
+not nixpkgs' — never set `nix.package` in a profile, it conflicts. That package
+is served by `https://install.determinate.systems`, not `cache.nixos.org`, and
+only the current stable build is kept there, so run
+`nix flake update determinate` when the pin ages or the host compiles Nix from
+source. A host's *first* switch onto Determinate needs the substituter passed on
+the command line (see README) because `nix.settings` only applies after
+activation; afterwards `determinate-nixd` owns `/etc/nix/nix.conf` and the
+NixOS-generated settings land in `/etc/nix/nix.custom.conf`.
+
+The `macos` profile is `kind = "home"`, so this module does not apply there —
+Determinate Nix on that machine comes from the standalone installer.
+
 ### Reusable modules (`config/modules/`)
 
 Standalone NixOS modules imported explicitly by profiles that need them:

@@ -104,6 +104,13 @@
           };
 
           modules = [
+            # Determinate Nix on every NixOS host. This sets `nix.package` to
+            # the `determinate` input's build (not nixpkgs'), which lives in
+            # https://install.determinate.systems rather than cache.nixos.org.
+            # Keep the input current — that cache only holds the current stable
+            # build, and a stale pin means compiling Nix from source. See the
+            # README for the one-off substituter flags a host's first switch
+            # needs, before determinate-nixd manages /etc/nix/nix.conf itself.
             inputs.determinate.nixosModules.default
             ./config/modules/nix-settings.nix
             ./config/modules/claude-code.nix
