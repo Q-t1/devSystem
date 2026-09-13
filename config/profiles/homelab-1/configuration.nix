@@ -1,29 +1,19 @@
-{ pkgs, ... }:
+{ ... }:
 
 {
   imports = [
     ./hardware.nix
-    ./virtualisation.nix
     ../../modules/boot-efi.nix
     ../../modules/locale-fr.nix
     ../../modules/openssh.nix
     ../../modules/user-qt1-server.nix
   ];
 
-  nix.package = pkgs.nix;
-
-  swapDevices = [
-    {
-      device = "/swapfile";
-      size = 8192;
-    }
-  ];
-
   networking = {
-    hostName = "infra-t0";
+    hostName = "homelab-1";
     useDHCP = false;
     dhcpcd.enable = false;
-    interfaces.br-lan = {
+    interfaces.enp2s0 = {
       useDHCP = false;
       ipv4.addresses = [
         {
@@ -32,23 +22,13 @@
         }
       ];
     };
-    bridges.br-lan = {
-      interfaces = [ "enp2s0" ];
-    };
     wireless.enable = false;
     defaultGateway = "192.168.1.254";
     nameservers = [
       "1.1.1.1"
       "8.8.8.8"
     ];
-  };
-
-  hardware = {
-    graphics = {
-      enable = true;
-      enable32Bit = true;
-    };
-    enableRedistributableFirmware = true;
+    firewall.allowedTCPPorts = [ 22 ];
   };
 
   system.stateVersion = "26.05";

@@ -103,12 +103,11 @@ One directory here is a **Home Manager** module, imported from a profile's
 
 ### Profile matrix
 
-| Profile  | System         | Kind  | Notes                                      |
-|----------|----------------|-------|--------------------------------------------|
-| wsl      | x86_64-linux   | nixos | WSL2, Docker, Zen Browser, bleu rootCA     |
-| macos    | aarch64-darwin | home  | Determinate Nix on macOS, user `quentin`; coding-ide |
-| infra-t0 | x86_64-linux   | nixos | Bare-metal server, static IP 192.168.1.230 |
-| infra-t1 | x86_64-linux   | nixos | Bare-metal server                          |
+| Profile   | System         | Kind  | Notes                                      |
+|-----------|----------------|-------|--------------------------------------------|
+| wsl       | x86_64-linux   | nixos | WSL2, Docker, Zen Browser, bleu rootCA     |
+| macos     | aarch64-darwin | home  | Determinate Nix on macOS, user `quentin`; coding-ide |
+| homelab-1 | x86_64-linux   | nixos | Bare-metal server, minimal: static IP 192.168.1.230 + DNS + SSH |
 
 ### Special args available in all modules
 

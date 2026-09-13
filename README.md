@@ -31,7 +31,7 @@ home-manager switch --flake .#macos
 # Build flake (Useful for CI)
 
 ~~~
-nix build --print-out-paths '.#nixosConfigurations.infra-t0.config.system.build.toplevel' \
+nix build --print-out-paths '.#nixosConfigurations.homelab-1.config.system.build.toplevel' \
   --no-link \
   --extra-experimental-features nix-command \
   --extra-experimental-features flakes
@@ -48,9 +48,8 @@ nix build --print-out-paths '.#homeConfigurations.macos.activationPackage' \
 
 # Profile matrix
 
-| Host     | System         | Kind  | Home Directory  |
-|----------|----------------|-------|-----------------|
-| macos    | aarch64-darwin | home  | /Users/quentin  |
-| infra-t0 | x86_64-linux   | nixos | /home/qt1       |
-| infra-t1 | x86_64-linux   | nixos | /home/qt1       |
-| wsl      | x86_64-linux   | nixos | /home/qt1       |
+| Host      | System         | Kind  | Home Directory  |
+|-----------|----------------|-------|-----------------|
+| macos     | aarch64-darwin | home  | /Users/quentin  |
+| homelab-1 | x86_64-linux   | nixos | /home/qt1       |
+| wsl       | x86_64-linux   | nixos | /home/qt1       |

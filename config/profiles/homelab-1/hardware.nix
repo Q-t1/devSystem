@@ -33,28 +33,11 @@
     ];
   };
 
-  fileSystems."/var/lib/kubelet/pods/3d0b373e-f8ab-43ec-b1b1-f08ce3e91c2f/volumes/kubernetes.io~projected/kube-api-access-lxpnz" =
-    {
-      device = "tmpfs";
-      fsType = "tmpfs";
-    };
-
-  fileSystems."/var/lib/kubelet/pods/ba92d140-eac5-4bc4-8c39-42c406de7b70/volumes/kubernetes.io~projected/kube-api-access-ljz97" =
-    {
-      device = "tmpfs";
-      fsType = "tmpfs";
-    };
-
-  fileSystems."/var/lib/kubelet/pods/d64680ef-9eea-4f4f-80c8-bcfcc79053ac/volumes/kubernetes.io~projected/kube-api-access-bcplg" =
-    {
-      device = "tmpfs";
-      fsType = "tmpfs";
-    };
-
   swapDevices = [
     { device = "/dev/disk/by-uuid/d2f46cf7-fb17-4fb1-8b8d-e5deb56458aa"; }
   ];
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+  hardware.enableRedistributableFirmware = lib.mkDefault true;
   hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 }
