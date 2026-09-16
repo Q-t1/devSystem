@@ -30,6 +30,14 @@
   users.extraUsers.qt1 = {
     isNormalUser = true;
     home = "/home/qt1";
+    # WSL starts the login shell without a PAM/logind session, so logind never
+    # runs user-runtime-dir@1000 and /run/user/1000 never exists — even though
+    # WSL's systemd integration still exports XDG_RUNTIME_DIR=/run/user/1000.
+    # Anything writing there then fails with EACCES (zellij panics creating its
+    # IPC socket dir), and the systemd.user.tmpfiles rules above never fire
+    # because the user manager is not running either. Lingering makes logind
+    # start user@1000 at boot, which creates the runtime dir and applies them.
+    linger = true;
     extraGroups = [
       "wheel"
       "docker"
