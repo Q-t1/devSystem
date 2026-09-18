@@ -1,4 +1,4 @@
-{ inputs, ... }:
+{ inputs, pkgs, ... }:
 
 {
   imports = [
@@ -11,6 +11,17 @@
     ../../modules/openssh.nix
     ../../modules/user-qt1-server.nix
   ];
+
+  # coding-ide (see home.nix) pulls in the unfree `claude-code`.
+  nixpkgs.config.allowUnfree = true;
+
+  # Ghostty's terminfo entry, system-wide. config/common/home.nix already puts
+  # it in qt1's Home Manager profile, but that is only reachable through the
+  # TERMINFO_DIRS that hm-session-vars exports — root (`sudo -i`, the physical
+  # console) never sources it. Here it lands in
+  # /run/current-system/sw/share/terminfo, which ncurses searches by default,
+  # so `TERM=xterm-ghostty` resolves for every user on this SSH target.
+  environment.systemPackages = [ pkgs.ghostty.terminfo ];
 
   networking = {
     hostName = "homelab-1";

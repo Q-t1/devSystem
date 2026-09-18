@@ -112,7 +112,8 @@ One directory here is a **Home Manager** module, imported from a profile's
   `programs.codingIde.clipboardProvider` (`wsl` | `pbcopy` | `osc52` | `none`),
   so each profile picks how the clipboard is reached — this also gates the
   Linux-only `wl-clipboard` dependency, which only the `wsl` provider pulls in.
-  Imported by wsl (`wsl`) and macos (`pbcopy`). Pulls the unfree `claude-code`
+  Imported by wsl (`wsl`), macos (`pbcopy`) and homelab-1 (`osc52`, headless
+  over SSH). Pulls the unfree `claude-code`
   (see `claude-code.nix` above), so an importing NixOS profile needs
   `nixpkgs.config.allowUnfree = true`; `kind = "home"` profiles get it from
   `mkHome`.
@@ -152,7 +153,7 @@ Consequences worth remembering:
 |-----------|----------------|-------|--------------------------------------------|
 | wsl       | x86_64-linux   | nixos | WSL2, Docker, Zen Browser, bleu rootCA     |
 | macos     | aarch64-darwin | home  | Determinate Nix on macOS, user `quentin`; coding-ide |
-| homelab-1 | x86_64-linux   | nixos | Bare-metal server: static IP 192.168.1.230 + DNS + SSH; imports the Qt1-Infrastructure flake (microVM host, cloudflared) |
+| homelab-1 | x86_64-linux   | nixos | Bare-metal server: static IP 192.168.1.230 + DNS + SSH; coding-ide; imports the Qt1-Infrastructure flake (microVM host, cloudflared) |
 
 ### Special args available in all modules
 
