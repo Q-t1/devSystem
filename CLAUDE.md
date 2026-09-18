@@ -117,23 +117,34 @@ One directory here is a **Home Manager** module, imported from a profile's
   `nixpkgs.config.allowUnfree = true`; `kind = "home"` profiles get it from
   `mkHome`.
 
-### MicroVMs (homelab-1)
+### Infrastructure lives in a separate flake
 
-`config/profiles/homelab-1/microvms.nix` imports
-`inputs.microvm.nixosModules.host` and declares the guests
-(`microvm.vms.<name>.config`, one file per guest under `microvms/`). Guests are
-evaluated with the host's `pkgs` but get none of the flake's special args or
-global modules (Determinate, `nix-settings.nix`), and each sets its own
-`system.stateVersion`.
+The microVM host layer, its guests and the services on them are **not in this
+repo** — they are the `Qt1-Infrastructure` flake (a sibling checkout,
+`../Qt1-Infrastructure`), consumed as the `qt1-infrastructure` input. This repo
+only carries OS configuration.
 
-- Network: bridge `microvm`, 10.100.0.1/24, NAT'd out of `enp2s0`. It's
-  systemd-networkd, which manages only that bridge and the `vm-*` tap devices;
-  `enp2s0` stays on scripted networking, so networkd's wait-online is disabled.
-  Each guest has a static address and a fixed MAC.
-- `cloudflared` (10.100.0.2): a dashboard-managed Cloudflare Tunnel. The token
-  is a host file passed in as a systemd credential (`microvm.credentialFiles`,
-  qemu runner only) and `microvm@cloudflared` is gated on it existing — see
-  the README for provisioning.
+homelab-1 imports `inputs.qt1-infrastructure.nixosModules.default` and enables
+what it wants through `qt1.infra.*` options (see its `configuration.nix`):
+`qt1.infra.microvmHost.enable` + `uplinkInterface` (the NIC name, the one OS
+fact that layer needs), and `qt1.infra.guests.<name>.enable`. Everything there
+is gated behind those options, so the import is inert until enabled.
+
+Consequences worth remembering:
+
+- Infrastructure changes are made in the other repo, then pulled in with
+  `nix flake update qt1-infrastructure` and applied with a normal
+  `nixos-rebuild switch --flake .#homelab-1` from here. To test uncommitted
+  infra work, add
+  `--override-input qt1-infrastructure path:/Users/quentin/Projects/Qt1-Infrastructure`.
+- The `microvm` input belongs to that flake, not this one; its modules close
+  over their own inputs and read no `inputs` specialArg, which is what keeps
+  the two flakes independent. Don't reintroduce a `microvm` input here.
+- `inputs.nixpkgs.follows` on the `qt1-infrastructure` input keeps one nixpkgs
+  per host, so guests are built from the same revision as their host.
+- The input is `github:Q-t1/Qt1-Infrastructure`. A relative `path:` input
+  cannot be used — it would resolve inside this flake's store copy — so local
+  infra work is tested with `--override-input`, not by changing the URL.
 
 ### Profile matrix
 
@@ -141,7 +152,7 @@ global modules (Determinate, `nix-settings.nix`), and each sets its own
 |-----------|----------------|-------|--------------------------------------------|
 | wsl       | x86_64-linux   | nixos | WSL2, Docker, Zen Browser, bleu rootCA     |
 | macos     | aarch64-darwin | home  | Determinate Nix on macOS, user `quentin`; coding-ide |
-| homelab-1 | x86_64-linux   | nixos | Bare-metal server: static IP 192.168.1.230 + DNS + SSH; microVM host (cloudflared) |
+| homelab-1 | x86_64-linux   | nixos | Bare-metal server: static IP 192.168.1.230 + DNS + SSH; imports the Qt1-Infrastructure flake (microVM host, cloudflared) |
 
 ### Special args available in all modules
 

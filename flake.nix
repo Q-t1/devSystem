@@ -18,10 +18,15 @@
     # a different nixpkgs changes the store path and loses the upstream cachix
     # cache hits.
     claude-code.url = "github:sadjow/claude-code-nix";
-    # Lightweight NixOS guests; homelab-1 imports the host module (see
-    # config/profiles/homelab-1/microvms.nix).
-    microvm = {
-      url = "github:microvm-nix/microvm.nix";
+    # Everything infrastructure: the microVM host layer, its guests and the
+    # services on them. This flake only consumes its `nixosModules`; the
+    # `microvm` input lives over there. `follows` keeps one nixpkgs per host,
+    # so the guests are built from the same revision as their host.
+    qt1-infrastructure = {
+      # A relative `path:` input cannot be used here — it would resolve inside
+      # this flake's store copy. To iterate on a local checkout, pass
+      #   --override-input qt1-infrastructure path:/Users/quentin/Projects/Qt1-Infrastructure
+      url = "github:Q-t1/Qt1-Infrastructure";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     flake-utils.url = "github:numtide/flake-utils";

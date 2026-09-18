@@ -34,32 +34,32 @@ rebuilds need no flags. Keep the `determinate` input reasonably current
 (`nix flake update determinate`): `install.determinate.systems` only carries the
 current stable build, and a stale pin falls back to compiling Nix from source.
 
-## homelab-1: cloudflared microVM
+## homelab-1: microVMs and infrastructure
 
-homelab-1 runs [microvm.nix](https://github.com/microvm-nix/microvm.nix) guests,
-declared in `config/profiles/homelab-1/microvms.nix`. They sit on a NAT'd
-bridge (`microvm`, 10.100.0.0/24, host at .1) and are built, installed and
-restarted by `nixos-rebuild switch`.
+The microVM host layer, its guests and the services on them live in the
+separate [Qt1-Infrastructure](../Qt1-Infrastructure) flake; this flake only
+carries OS configuration. homelab-1 imports
+`inputs.qt1-infrastructure.nixosModules.default` and turns the pieces on with
+`qt1.infra.*` options in `config/profiles/homelab-1/configuration.nix`.
 
-`cloudflared` (10.100.0.2) runs a dashboard-managed Cloudflare Tunnel — the
-entrypoint into the local infrastructure. It stays stopped until its tunnel
-token is on the host. Create the tunnel in the Cloudflare Zero Trust dashboard
-(connector: cloudflared), copy its token, then on homelab-1, after the first
-switch:
+Guests are built, installed and restarted by `nixos-rebuild switch` here, so
+deploying an infrastructure change is still a switch of this flake — after
+pulling the new revision in:
 
 ~~~
-sudo install -m 0400 -o microvm -g kvm /dev/stdin /var/lib/microvms/cloudflared/tunnel-token
-# paste the token, then Ctrl-D
-sudo systemctl start microvm@cloudflared
+nix flake update qt1-infrastructure
+sudo nixos-rebuild switch --flake .#homelab-1
 ~~~
 
-The token is only read when the VM boots: after rotating it, run
-`sudo systemctl restart microvm@cloudflared`. Tunnel logs are on the host, in
-`journalctl -u microvm@cloudflared`.
+To iterate on both repos at once, without committing to the infra one:
 
-Routes (public hostnames, private networks) are configured in the dashboard.
-LAN origins see the tunnel's traffic coming from 192.168.1.230; a service on
-homelab-1 itself also needs its port opened in the host firewall.
+~~~
+sudo nixos-rebuild switch --flake .#homelab-1 \
+  --override-input qt1-infrastructure path:/Users/quentin/Projects/Qt1-Infrastructure
+~~~
+
+Provisioning the Cloudflare tunnel token, adding a guest, and the guest network
+layout are documented in that repo's README.
 
 # For standalone Home-Manager profiles (macOS)
 
