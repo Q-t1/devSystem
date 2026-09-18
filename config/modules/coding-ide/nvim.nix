@@ -95,20 +95,6 @@ let
       none = "";
     }
     .${clipboardProvider};
-
-  # vscode-langservers-extracted 4.10.0 ships a broken JSON server bundle: it
-  # mixes CommonJS `require()` with a lone `import.meta.url`, so Node 24 can run
-  # it as neither (as ESM `require` is undefined; as CJS `import.meta` is a
-  # syntax error) and jsonls crashes at startup. Pin the bundle to CommonJS and
-  # rewrite that one ESM-ism to its CJS equivalent.
-  jsonlsFixed = pkgs.vscode-langservers-extracted.overrideAttrs (old: {
-    postInstall = (old.postInstall or "") + ''
-      srv="$out/lib/node_modules/vscode-langservers-extracted/lib/json-language-server/node"
-      echo '{ "type": "commonjs" }' > "$srv/package.json"
-      substituteInPlace "$srv/jsonServerMain.js" \
-        --replace-fail 'import.meta.url' "require('url').pathToFileURL(__filename).href"
-    '';
-  });
 in
 {
   imports = [ inputs.nixvim.homeModules.nixvim ];
@@ -494,12 +480,8 @@ in
             };
           };
 
-          # JSON / JSONC (with SchemaStore catalog). The stock server package
-          # crashes under Node, so use the patched build (see jsonlsFixed).
-          jsonls = {
-            enable = true;
-            package = jsonlsFixed;
-          };
+          # JSON / JSONC (with SchemaStore catalog).
+          jsonls.enable = true;
 
           # Lua (for editing this very config)
           lua_ls.enable = true;
