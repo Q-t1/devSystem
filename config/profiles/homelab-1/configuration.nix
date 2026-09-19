@@ -58,6 +58,9 @@
       serverUrl = "https://headscale.qt1.fr";
       baseDomain = "tailnet.qt1.fr";
       headplaneUrl = "https://headplane.qt1.fr";
+      # qt1's own key, so `ssh root@10.100.0.3` from this host works for
+      # one-off `headscale` CLI commands.
+      adminSshKey = "ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEZwHQueTTuhfMB98jXNBGC+z0GwEOv8+hGLaI5DSVj8IUxF9t7Bzcw3AK6yiRhbqz0PMrep1McwiKZ/z2KSbR8= qt1@nixos-foundation";
     };
   };
 
