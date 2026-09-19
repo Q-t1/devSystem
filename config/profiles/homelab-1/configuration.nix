@@ -52,7 +52,11 @@
       enable = true;
       uplinkInterface = "enp2s0";
     };
-    guests.cloudflared.enable = true;
+    guests.cloudflared = {
+      enable = true;
+      # Reaches the same tailnet as the host itself, below.
+      tailscale.enable = true;
+    };
     guests.headscale = {
       enable = true;
       serverUrl = "https://headscale.qt1.fr";
@@ -61,6 +65,12 @@
       # qt1's own key, so `ssh root@10.100.0.3` from this host works for
       # one-off `headscale` CLI commands.
       adminSshKey = "ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEZwHQueTTuhfMB98jXNBGC+z0GwEOv8+hGLaI5DSVj8IUxF9t7Bzcw3AK6yiRhbqz0PMrep1McwiKZ/z2KSbR8= qt1@nixos-foundation";
+    };
+    # This host is itself a tailnet member, not just the guests' coordinator.
+    tailscaleClient = {
+      enable = true;
+      loginServerUrl = "https://headscale.qt1.fr";
+      authKeyFile = "/var/lib/tailscale/authkey";
     };
   };
 
