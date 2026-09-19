@@ -1,6 +1,16 @@
 { pkgs, lib, ... }:
 
 {
+  # `man home-configuration.nix`. Off because building it makes Home Manager
+  # render its whole option set into an `options.json` derivation that refers
+  # to the nixpkgs store path without a proper string context — Nix warns on
+  # every evaluation that this "is unreliable and may stop working in the
+  # future". Option lookup on these hosts goes through nixd anyway (see
+  # config/modules/coding-ide.nix), which reads the live flake rather than a
+  # rendered man page. Flip back to `true` if the upstream docs build stops
+  # warning.
+  manual.manpages.enable = false;
+
   programs.nh.enable = true;
 
   programs.home-manager.enable = true;
