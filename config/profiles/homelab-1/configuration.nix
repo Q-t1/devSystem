@@ -53,6 +53,12 @@
       uplinkInterface = "enp2s0";
     };
     guests.cloudflared.enable = true;
+    guests.headscale = {
+      enable = true;
+      serverUrl = "https://headscale.qt1.fr";
+      baseDomain = "tailnet.qt1.fr";
+      headplaneUrl = "https://headplane.qt1.fr";
+    };
   };
 
   system.stateVersion = "26.05";
