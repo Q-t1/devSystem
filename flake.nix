@@ -9,15 +9,27 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nixvim = {
-      url = "github:nix-community/nixvim";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     # `claude` CLI, replacing the nixpkgs package (see
     # config/modules/claude-code.nix). Deliberately not following our nixpkgs:
     # a different nixpkgs changes the store path and loses the upstream cachix
     # cache hits.
     claude-code.url = "github:sadjow/claude-code-nix";
+    # The `coding` IDE (yazi + zellij + nixvim). Its own flake; this repo only
+    # consumes `homeModules.default` through config/modules/coding-ide.nix.
+    # To iterate on a local checkout, pass
+    #   --override-input codide path:/Users/quentin/Projects/CodIDE
+    codide = {
+      url = "github:Q-t1/CodIDE";
+      inputs = {
+        # One nixpkgs per host, so the IDE is built from the same revision as
+        # everything else on it.
+        nixpkgs.follows = "nixpkgs";
+        home-manager.follows = "home-manager";
+        # We hand the module `pkgs.claude-code` (see coding-ide.nix), so keep
+        # CodIDE's own claude-code pin from becoming a second one.
+        claude-code.follows = "claude-code";
+      };
+    };
     # Everything infrastructure: the microVM host layer, its guests and the
     # services on them. This flake only consumes its `nixosModules`; the
     # `microvm` input lives over there. `follows` keeps one nixpkgs per host,

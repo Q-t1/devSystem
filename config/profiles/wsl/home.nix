@@ -6,7 +6,7 @@
 }:
 
 {
-  imports = [ ../../modules/coding-ide ];
+  imports = [ ../../modules/coding-ide.nix ];
 
   # WSL reaches the Windows clipboard directly (WSLg Wayland with a clip.exe /
   # PowerShell fallback) rather than OSC 52.

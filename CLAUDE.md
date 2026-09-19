@@ -105,18 +105,42 @@ Standalone NixOS modules imported explicitly by profiles that need them:
   the slower nixpkgs one) and adds its cachix substituter; also always applied
   via `flake.nix`, so every call site keeps using `pkgs.claude-code`
 
-One directory here is a **Home Manager** module, imported from a profile's
+One file here is a **Home Manager** module, imported from a profile's
 `home.nix` rather than its `configuration.nix`:
-- `coding-ide/` — the `coding` IDE (yazi + zellij + nixvim). `default.nix` is
-  the yazi/zellij workspace, `nvim.nix` the editor. Exposes one option,
-  `programs.codingIde.clipboardProvider` (`wsl` | `pbcopy` | `osc52` | `none`),
-  so each profile picks how the clipboard is reached — this also gates the
-  Linux-only `wl-clipboard` dependency, which only the `wsl` provider pulls in.
-  Imported by wsl (`wsl`), macos (`pbcopy`) and homelab-1 (`osc52`, headless
-  over SSH). Pulls the unfree `claude-code`
-  (see `claude-code.nix` above), so an importing NixOS profile needs
-  `nixpkgs.config.allowUnfree = true`; `kind = "home"` profiles get it from
-  `mkHome`.
+- `coding-ide.nix` — glue for the `coding` IDE, which lives in its own flake
+  (see below). It imports `inputs.codide.homeModules.default`, hands it
+  `pkgs.claude-code` (our overlay, so the repo ships one `claude` build) and
+  points `programs.codingIde.nixd` at *this* flake's outputs. Imported by wsl,
+  macos and homelab-1, each of which only adds
+  `programs.codingIde.clipboardProvider` (`wsl` | `pbcopy` | `osc52` | `none`)
+  for its host — that also gates the Linux-only `wl-clipboard` dependency,
+  which only the `wsl` provider pulls in.
+
+### The coding IDE lives in a separate flake
+
+The `coding` IDE (yazi + zellij + nixvim) used to be `config/modules/coding-ide/`;
+it is now the **CodIDE** flake (a sibling checkout, `../CodIDE`,
+`github:Q-t1/CodIDE`), consumed as the `codide` input. It exports one Home
+Manager module, `homeModules.default`, wired up here by
+`config/modules/coding-ide.nix`.
+
+Worth remembering:
+
+- Editor changes — a plugin, a keymap, an LSP — are made in that repo, then
+  pulled in with `nix flake update codide` and applied with a normal switch
+  from here. To test uncommitted IDE work, add
+  `--override-input codide path:/Users/quentin/Projects/CodIDE`.
+- The module reads no `specialArgs`: it takes CodIDE's own inputs by closure
+  and everything host-specific is an option under `programs.codingIde`
+  (`clipboardProvider`, `claudeCode.{enable,package}`,
+  `nixd.{nixpkgsExpr,options}`). Nothing there may assume this repo.
+- `nixvim` is CodIDE's input now, not ours — don't reintroduce it here.
+- `inputs.codide.inputs.{nixpkgs,home-manager,claude-code}.follows` keep one
+  nixpkgs and one `claude` per host.
+- Left alone, the module would pull its own `claude` straight from the
+  `claude-code` flake (no overlay, no `allowUnfree` needed by the consumer);
+  `config/modules/coding-ide.nix` overrides that with `pkgs.claude-code`, which
+  is why the NixOS profiles still need `nixpkgs.config.allowUnfree = true`.
 
 ### Infrastructure lives in a separate flake
 
@@ -161,5 +185,5 @@ Consequences worth remembering:
 - `username` — `"qt1"`
 - `profile` — the profile name string
 - `system` — the system string (e.g. `"x86_64-linux"`)
-- `kind` — `"nixos"` or `"home"`; used by `coding-ide/nvim.nix` to point nixd at
-  the right flake output for option completion
+- `kind` — `"nixos"` or `"home"`; used by `config/modules/coding-ide.nix` to
+  point nixd at the right flake output for option completion

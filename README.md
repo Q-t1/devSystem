@@ -61,6 +61,24 @@ sudo nixos-rebuild switch --flake .#homelab-1 \
 Provisioning the Cloudflare tunnel token, adding a guest, and the guest network
 layout are documented in that repo's README.
 
+## The coding IDE
+
+`coding` (yazi + zellij + nixvim), `gitview` and `fif` come from the separate
+[CodIDE](../CodIDE) flake, consumed as the `codide` input and wired to this repo
+by `config/modules/coding-ide.nix`; each profile only picks its clipboard
+provider. Pull a new editor revision in and switch as usual:
+
+~~~
+nix flake update codide
+~~~
+
+To try an uncommitted IDE change before pushing it:
+
+~~~
+home-manager switch --flake .#macos \
+  --override-input codide path:/Users/quentin/Projects/CodIDE
+~~~
+
 # For standalone Home-Manager profiles (macOS)
 
 Nix on macOS comes from [Determinate Nix](https://determinate.systems) — there

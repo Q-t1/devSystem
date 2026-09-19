@@ -4,7 +4,7 @@
   # The `coding` IDE (yazi + zellij + nixvim). Unlike the container/WSL
   # profiles this one runs natively on macOS, so the clipboard goes straight to
   # pbcopy/pbpaste instead of OSC 52 escapes or the Windows bridge.
-  imports = [ ../../modules/coding-ide ];
+  imports = [ ../../modules/coding-ide.nix ];
 
   programs.codingIde.clipboardProvider = "pbcopy";
 
