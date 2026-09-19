@@ -1,4 +1,9 @@
-{ inputs, pkgs, ... }:
+{
+  inputs,
+  pkgs,
+  config,
+  ...
+}:
 
 {
   imports = [
@@ -67,11 +72,20 @@
       adminSshKey = "ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEZwHQueTTuhfMB98jXNBGC+z0GwEOv8+hGLaI5DSVj8IUxF9t7Bzcw3AK6yiRhbqz0PMrep1McwiKZ/z2KSbR8= qt1@nixos-foundation";
     };
     # This host is itself a tailnet member, not just the guests' coordinator.
+    # authKeyFile is the same auto-minted key the cloudflared guest uses
+    # above — nothing to provision by hand.
     tailscaleClient = {
       enable = true;
       loginServerUrl = "https://headscale.qt1.fr";
-      authKeyFile = "/var/lib/tailscale/authkey";
+      authKeyFile = config.qt1.infra.guests.headscale.tailscaleAuthKeyFile;
     };
+  };
+
+  # Not strictly required (tailscale-autoconnect retries on its own), but
+  # avoids a spin of failed attempts while the key is still being minted.
+  systemd.services.tailscale-autoconnect = {
+    wants = [ "headscale-mint-tailscale-authkey.service" ];
+    after = [ "headscale-mint-tailscale-authkey.service" ];
   };
 
   system.stateVersion = "26.05";
