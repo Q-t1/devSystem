@@ -1,7 +1,6 @@
 {
   inputs,
   pkgs,
-  config,
   ...
 }:
 
@@ -61,41 +60,14 @@
       enable = true;
       uplinkInterface = "enp2s0";
     };
-    guests.cloudflared = {
+    guests.newt.enable = true;
+    guests.pangolin = {
       enable = true;
-      # Reaches the same tailnet as the host itself, below.
-      tailscale.enable = true;
+      dashboardDomain = "admin.qt1.fr";
+      # The apex: resources become <name>.qt1.fr.
+      baseDomain = "qt1.fr";
+      letsEncryptEmail = "quentin.roccia@gmail.com";
     };
-    guests.headscale = {
-      enable = true;
-      serverUrl = "https://headscale.qt1.fr";
-      baseDomain = "tailnet.qt1.fr";
-      headplaneUrl = "https://headplane.qt1.fr";
-      # qt1's own key, so `ssh root@10.100.0.3` from this host works for
-      # one-off `headscale` CLI commands.
-      adminSshKey = "ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEZwHQueTTuhfMB98jXNBGC+z0GwEOv8+hGLaI5DSVj8IUxF9t7Bzcw3AK6yiRhbqz0PMrep1McwiKZ/z2KSbR8= qt1@nixos-foundation";
-    };
-    # This host is itself a tailnet member, not just the guests' coordinator.
-    # loginServerUrl is headscale's bridge-local address, not the public
-    # https://headscale.qt1.fr: Cloudflare Tunnel doesn't pass through the
-    # Upgrade header Tailscale's registration protocol needs, but this host
-    # can already reach the guest bridge directly, so there's no reason to
-    # round-trip through the WAN anyway (see
-    # qt1.infra.guests.headscale.serverUrl's description). authKeyFile is the
-    # same auto-minted key the cloudflared guest uses above — nothing to
-    # provision by hand.
-    tailscaleClient = {
-      enable = true;
-      loginServerUrl = config.qt1.infra.guests.headscale.internalUrl;
-      authKeyFile = config.qt1.infra.guests.headscale.tailscaleAuthKeyFile;
-    };
-  };
-
-  # Not strictly required (tailscale-autoconnect retries on its own), but
-  # avoids a spin of failed attempts while the key is still being minted.
-  systemd.services.tailscale-autoconnect = {
-    wants = [ "headscale-mint-tailscale-authkey.service" ];
-    after = [ "headscale-mint-tailscale-authkey.service" ];
   };
 
   system.stateVersion = "26.05";
