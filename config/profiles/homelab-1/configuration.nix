@@ -72,11 +72,17 @@
       adminSshKey = "ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEZwHQueTTuhfMB98jXNBGC+z0GwEOv8+hGLaI5DSVj8IUxF9t7Bzcw3AK6yiRhbqz0PMrep1McwiKZ/z2KSbR8= qt1@nixos-foundation";
     };
     # This host is itself a tailnet member, not just the guests' coordinator.
-    # authKeyFile is the same auto-minted key the cloudflared guest uses
-    # above — nothing to provision by hand.
+    # loginServerUrl is headscale's bridge-local address, not the public
+    # https://headscale.qt1.fr: Cloudflare Tunnel doesn't pass through the
+    # Upgrade header Tailscale's registration protocol needs, but this host
+    # can already reach the guest bridge directly, so there's no reason to
+    # round-trip through the WAN anyway (see
+    # qt1.infra.guests.headscale.serverUrl's description). authKeyFile is the
+    # same auto-minted key the cloudflared guest uses above — nothing to
+    # provision by hand.
     tailscaleClient = {
       enable = true;
-      loginServerUrl = "https://headscale.qt1.fr";
+      loginServerUrl = config.qt1.infra.guests.headscale.internalUrl;
       authKeyFile = config.qt1.infra.guests.headscale.tailscaleAuthKeyFile;
     };
   };
