@@ -67,10 +67,14 @@
       # Must differ from serverUrl's domain (see the option doc); ts.qt1.fr
       # is otherwise unused.
       baseDomain = "ts.qt1.fr";
-      letsEncryptEmail = "quentin.roccia@gmail.com";
       # Same key user-qt1-server.nix already authorizes for qt1 on this
       # host, reused here for root on the headscale guest.
       adminSshKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDtASdfLMatnUWsdJIjIvIXqXrnmABAznN/6mji1/rzRLqrusduqahyi4htTRvOuue3vrhUqeywiRTNTpzthfhVqeF5WehE1wAPkbgGwAvxC8ltqLPza6KkfZF0WXdXj/MsKJDTJUwui+acbyJocuMz0teJOhURoaEetXzr+ffj6P9Txz7uX6KN8D2DYGi9WvG8QPdlF/89f5vtCx4GFrKkdSET+yNC3PEcf+X8wDoL+ztuvcTGLb4rC42NzLJ82VCAYZ6KS085s8GD+lcgU/jxpRUeCVoY7Ciym/VKs2oxVsyM45fP+d33BJmqV+WGgVLHz0T4y05HOS6CBLObbXZYLfDg7jNl/MVxVktNRfvPLr23z8IvUL1DR8lHIqc6jesFMe8W5PuaoxwzQIhRl8ywGT/rVq1btMiS41mqo/86pZAFtehTt04A3GbMVGB7NNO3tmaVbUlr/aSFdB/hLr0pU3uuZQsHCipZ/3+IGs7erU1r2VVNhnxd/JcDJEVstd8= quentin@MacBook-Air-de-Quentin.local";
+    };
+    # Fronts headscale with TLS; see Qt1-Infrastructure's README.
+    guests.caddy = {
+      enable = true;
+      letsEncryptEmail = "quentin.roccia@gmail.com";
     };
     # Join the host itself to its own tailnet, so it's reachable over
     # Tailscale (e.g. for SSH) the same way any other tailnet member is.
@@ -83,10 +87,11 @@
   };
 
   # Bridge-local shortcut for the tailscaleClient join above: resolves
-  # serverUrl's hostname straight to the headscale guest's bridge address
-  # instead of out through the WAN and back in via the router's port
-  # forward (NAT hairpinning, which not every router supports reliably).
-  networking.hosts.${config.qt1.infra.guests.headscale.address} = [
+  # serverUrl's hostname straight to the caddy guest's bridge address
+  # (caddy holds the TLS cert now, not headscale) instead of out through
+  # the WAN and back in via the router's port forward (NAT hairpinning,
+  # which not every router supports reliably).
+  networking.hosts.${config.qt1.infra.guests.caddy.address} = [
     config.qt1.infra.guests.headscale.tlsHostname
   ];
 
