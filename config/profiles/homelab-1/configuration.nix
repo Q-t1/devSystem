@@ -47,7 +47,11 @@
       "1.1.1.1"
       "8.8.8.8"
     ];
-    firewall.allowedTCPPorts = [ 22 ];
+    firewall.allowedTCPPorts = [
+      22
+      80
+      443
+    ];
   };
 
   # Infra layer, owned by the Qt1-Infrastructure flake. Only the uplink is an
