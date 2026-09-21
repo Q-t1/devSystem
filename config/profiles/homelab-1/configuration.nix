@@ -60,6 +60,14 @@
     microvmHost = {
       enable = true;
       uplinkInterface = "enp2s0";
+      # homelab-1's own SSH host identity, trusted for root on every guest
+      # that exposes SSH by default — lets the host itself (not just a
+      # human's laptop) reach a guest as root, e.g. for troubleshooting from
+      # a `qt1` shell on this box without copying a personal private key
+      # onto the server.
+      adminSshKeys = [
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOU1fciGd3S4aJ7pnN10sMkKirklTuED/qhDbSmFdti root@nixos-foundation"
+      ];
     };
     guests.headscale = {
       enable = true;
@@ -68,8 +76,11 @@
       # is otherwise unused.
       baseDomain = "ts.qt1.fr";
       # Same key user-qt1-server.nix already authorizes for qt1 on this
-      # host, reused here for root on the headscale guest.
-      adminSshKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDtASdfLMatnUWsdJIjIvIXqXrnmABAznN/6mji1/rzRLqrusduqahyi4htTRvOuue3vrhUqeywiRTNTpzthfhVqeF5WehE1wAPkbgGwAvxC8ltqLPza6KkfZF0WXdXj/MsKJDTJUwui+acbyJocuMz0teJOhURoaEetXzr+ffj6P9Txz7uX6KN8D2DYGi9WvG8QPdlF/89f5vtCx4GFrKkdSET+yNC3PEcf+X8wDoL+ztuvcTGLb4rC42NzLJ82VCAYZ6KS085s8GD+lcgU/jxpRUeCVoY7Ciym/VKs2oxVsyM45fP+d33BJmqV+WGgVLHz0T4y05HOS6CBLObbXZYLfDg7jNl/MVxVktNRfvPLr23z8IvUL1DR8lHIqc6jesFMe8W5PuaoxwzQIhRl8ywGT/rVq1btMiS41mqo/86pZAFtehTt04A3GbMVGB7NNO3tmaVbUlr/aSFdB/hLr0pU3uuZQsHCipZ/3+IGs7erU1r2VVNhnxd/JcDJEVstd8= quentin@MacBook-Air-de-Quentin.local";
+      # host, reused here for root on the headscale guest; combined with
+      # microvmHost.adminSshKeys above.
+      adminSshKeys = [
+        "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDtASdfLMatnUWsdJIjIvIXqXrnmABAznN/6mji1/rzRLqrusduqahyi4htTRvOuue3vrhUqeywiRTNTpzthfhVqeF5WehE1wAPkbgGwAvxC8ltqLPza6KkfZF0WXdXj/MsKJDTJUwui+acbyJocuMz0teJOhURoaEetXzr+ffj6P9Txz7uX6KN8D2DYGi9WvG8QPdlF/89f5vtCx4GFrKkdSET+yNC3PEcf+X8wDoL+ztuvcTGLb4rC42NzLJ82VCAYZ6KS085s8GD+lcgU/jxpRUeCVoY7Ciym/VKs2oxVsyM45fP+d33BJmqV+WGgVLHz0T4y05HOS6CBLObbXZYLfDg7jNl/MVxVktNRfvPLr23z8IvUL1DR8lHIqc6jesFMe8W5PuaoxwzQIhRl8ywGT/rVq1btMiS41mqo/86pZAFtehTt04A3GbMVGB7NNO3tmaVbUlr/aSFdB/hLr0pU3uuZQsHCipZ/3+IGs7erU1r2VVNhnxd/JcDJEVstd8= quentin@MacBook-Air-de-Quentin.local"
+      ];
     };
     # Fronts headscale with TLS; see Qt1-Infrastructure's README.
     guests.caddy = {
