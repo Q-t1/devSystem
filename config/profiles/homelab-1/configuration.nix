@@ -83,6 +83,9 @@
       enable = true;
       letsEncryptEmail = "quentin.roccia@gmail.com";
     };
+    # Watches caddy's access log and bans offenders at the host firewall;
+    # see Qt1-Infrastructure's README, "Protecting caddy".
+    crowdsec.enable = true;
     # Join the host itself to its own tailnet, so it's reachable over
     # Tailscale (e.g. for SSH) the same way any other tailnet member is.
     # See Qt1-Infrastructure's README, "Joining the tailnet".
