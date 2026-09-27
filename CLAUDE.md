@@ -105,13 +105,13 @@ Standalone NixOS modules imported explicitly by profiles that need them:
   the slower nixpkgs one) and adds its cachix substituter; also always applied
   via `flake.nix`, so every call site keeps using `pkgs.claude-code`
 
-One file here is a **Home Manager** module, imported from a profile's
-`home.nix` rather than its `configuration.nix`:
+One file here is a **Home Manager** module, imported by
+`config/common/home.nix` rather than a `configuration.nix`:
 - `coding-ide.nix` — glue for the `coding` IDE, which lives in its own flake
   (see below). It imports `inputs.codide.homeModules.default`, hands it
   `pkgs.claude-code` (our overlay, so the repo ships one `claude` build) and
-  points `programs.codingIde.nixd` at *this* flake's outputs. Imported by wsl,
-  macos and homelab-1, each of which only adds
+  points `programs.codingIde.nixd` at *this* flake's outputs. Every profile
+  gets it through the shared base, and each profile's `home.nix` only sets
   `programs.codingIde.clipboardProvider` (`wsl` | `pbcopy` | `osc52` | `none`)
   for its host — that also gates the Linux-only `wl-clipboard` dependency,
   which only the `wsl` provider pulls in.
@@ -177,7 +177,7 @@ Consequences worth remembering:
 |-----------|----------------|-------|--------------------------------------------|
 | wsl       | x86_64-linux   | nixos | WSL2, Docker, Zen Browser, bleu rootCA     |
 | macos     | aarch64-darwin | home  | Determinate Nix on macOS, user `quentin`; coding-ide |
-| homelab-1 | x86_64-linux   | nixos | Bare-metal server: static IP 192.168.1.230 + DNS + SSH; coding-ide; imports the Qt1-Infrastructure flake (microVM host, cloudflared) |
+| homelab-1 | x86_64-linux   | nixos | Bare-metal server: static IP 192.168.1.230 + DNS + SSH; coding-ide; imports the Qt1-Infrastructure flake (microVM host; headscale, caddy, caddy-internal, monitoring guests; crowdsec; tailnet member) |
 
 ### Special args available in all modules
 

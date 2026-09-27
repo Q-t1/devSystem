@@ -58,8 +58,8 @@ sudo nixos-rebuild switch --flake .#homelab-1 \
   --override-input qt1-infrastructure path:/Users/quentin/Projects/Qt1-Infrastructure
 ~~~
 
-Provisioning the Cloudflare tunnel token, adding a guest, and the guest network
-layout are documented in that repo's README.
+Adding a guest, joining the tailnet, and the guest network layout are
+documented in that repo's README.
 
 ## The coding IDE
 

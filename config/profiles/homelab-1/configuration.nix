@@ -1,9 +1,4 @@
-{
-  inputs,
-  pkgs,
-  config,
-  ...
-}:
+{ inputs, pkgs, ... }:
 
 {
   imports = [
@@ -17,7 +12,7 @@
     ../../modules/user-qt1-server.nix
   ];
 
-  # coding-ide (see home.nix) pulls in the unfree `claude-code`.
+  # coding-ide (config/common/home.nix) pulls in the unfree `claude-code`.
   nixpkgs.config.allowUnfree = true;
 
   # Ghostty's terminfo entry, system-wide. config/common/home.nix already puts
@@ -96,22 +91,11 @@
     guests.monitoring.enable = true;
     # Join the host itself to its own tailnet, so it's reachable over
     # Tailscale (e.g. for SSH) the same way any other tailnet member is.
-    # See Qt1-Infrastructure's README, "Joining the tailnet".
-    tailscaleClient = {
-      enable = true;
-      loginServerUrl = config.qt1.infra.guests.headscale.serverUrl;
-      authKeyFile = config.qt1.infra.guests.headscale.tailscaleAuthKeyFile;
-    };
+    # Login server, pre-auth key and the bridge shortcut to headscale all
+    # default to the guests above; see Qt1-Infrastructure's README, "Joining
+    # the tailnet".
+    tailscaleClient.enable = true;
   };
-
-  # Bridge-local shortcut for the tailscaleClient join above: resolves
-  # serverUrl's hostname straight to the caddy guest's bridge address
-  # (caddy holds the TLS cert now, not headscale) instead of out through
-  # the WAN and back in via the router's port forward (NAT hairpinning,
-  # which not every router supports reliably).
-  networking.hosts.${config.qt1.infra.guests.caddy.address} = [
-    config.qt1.infra.guests.headscale.tlsHostname
-  ];
 
   system.stateVersion = "26.05";
 }

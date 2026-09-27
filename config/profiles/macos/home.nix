@@ -1,11 +1,10 @@
 { pkgs, lib, ... }:
 
 {
-  # The `coding` IDE (yazi + zellij + nixvim). Unlike the container/WSL
-  # profiles this one runs natively on macOS, so the clipboard goes straight to
-  # pbcopy/pbpaste instead of OSC 52 escapes or the Windows bridge.
-  imports = [ ../../modules/coding-ide.nix ];
-
+  # The `coding` IDE's clipboard (config/common/home.nix imports the IDE).
+  # Unlike the container/WSL profiles this one runs natively on macOS, so the
+  # clipboard goes straight to pbcopy/pbpaste instead of OSC 52 escapes or the
+  # Windows bridge.
   programs.codingIde.clipboardProvider = "pbcopy";
 
   # Migrated off Homebrew — nix is the source of truth for CLI tooling on this

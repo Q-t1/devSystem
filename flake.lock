@@ -477,11 +477,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1790492935,
-        "narHash": "sha256-rTYtvz8z1VunafCukcXh726anjlqR97k786BNXhXbec=",
+        "lastModified": 1790509287,
+        "narHash": "sha256-l1SjvbsD1pR2gYwnJCM7ypgCPG5PBRrbJnUt9jpQoPc=",
         "owner": "Q-t1",
         "repo": "Qt1-Infrastructure",
-        "rev": "7baf35c6a5f09df1352f968088d1735f20379976",
+        "rev": "1df8b0c95c84b4e78b828128cb3560cd3500b1bd",
         "type": "github"
       },
       "original": {

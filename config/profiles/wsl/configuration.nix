@@ -1,6 +1,8 @@
-{ pkgs, config, ... }:
+{ inputs, pkgs, ... }:
 
 {
+  imports = [ inputs.nixos-wsl.nixosModules.wsl ];
+
   wsl = {
     enable = true;
     defaultUser = "qt1";
