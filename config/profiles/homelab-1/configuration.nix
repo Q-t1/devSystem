@@ -86,7 +86,8 @@
     # Watches caddy's access log and bans offenders at the host firewall;
     # see Qt1-Infrastructure's README, "Protecting caddy".
     crowdsec.enable = true;
-    # Loki+Prometheus+Grafana, reachable only over the tailnet; see
+    # Loki+Prometheus+Grafana, reachable only over the tailnet, and only at
+    # its MagicDNS name: http://monitoring.ts.qt1.fr/ (grafanaUrl). See
     # Qt1-Infrastructure's README, "monitoring guest".
     guests.monitoring.enable = true;
     # Join the host itself to its own tailnet, so it's reachable over
