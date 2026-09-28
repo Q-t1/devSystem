@@ -78,6 +78,17 @@
         }
       ) (lib.filterAttrs (_: type: type == "directory") (builtins.readDir profilesDir));
 
+      # Handed to every module — NixOS and Home Manager alike.
+      specialArgsFor = host: {
+        inherit inputs;
+        inherit (host)
+          profile
+          system
+          username
+          kind
+          ;
+      };
+
       mkHmModule = host: {
         imports = [
           ./config/common/home.nix
@@ -88,7 +99,6 @@
           username = host.username;
           homeDirectory = host.homeDirectory;
         };
-        programs.home-manager.enable = true;
       };
 
       mkHome =
@@ -100,15 +110,7 @@
             # claude-code is unfree, as it is for the nixos profiles.
             config.allowUnfree = true;
           };
-          extraSpecialArgs = {
-            inherit inputs;
-            inherit (host)
-              profile
-              system
-              username
-              kind
-              ;
-          };
+          extraSpecialArgs = specialArgsFor host;
           modules = [ (mkHmModule host) ];
         };
 
@@ -116,15 +118,7 @@
         _: host:
         lib.nixosSystem {
           system = host.system;
-          specialArgs = {
-            inherit inputs;
-            inherit (host)
-              profile
-              system
-              username
-              kind
-              ;
-          };
+          specialArgs = specialArgsFor host;
 
           modules = [
             # Determinate Nix on every NixOS host. This sets `nix.package` to
@@ -143,20 +137,9 @@
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
               home-manager.backupFileExtension = "backup";
-              home-manager.extraSpecialArgs = {
-                inherit inputs;
-                inherit (host)
-                  profile
-                  system
-                  username
-                  kind
-                  ;
-              };
+              home-manager.extraSpecialArgs = specialArgsFor host;
               home-manager.users.${host.username} = mkHmModule host;
             }
-          ]
-          ++ lib.optionals (host.kind == "nixos" && host.profile == "wsl") [
-            inputs.nixos-wsl.nixosModules.wsl
           ];
         };
 
