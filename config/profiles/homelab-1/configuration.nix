@@ -93,6 +93,14 @@
     # tailnet, at http://grafana.ts.qt1.fr/ (grafanaUrl). See
     # Qt1-Infrastructure's README, "monitoring guest".
     guests.monitoring.enable = true;
+    # Public status page, served by caddy at https://status.qt1.fr/ (needs
+    # the DNS record, like access.qt1.fr). Checks headscale and every
+    # caddyInternal app on its own; see Qt1-Infrastructure's README, "gatus
+    # guest".
+    guests.gatus = {
+      enable = true;
+      hostname = "status.qt1.fr";
+    };
     # Join the host itself to its own tailnet, so it's reachable over
     # Tailscale (e.g. for SSH) the same way any other tailnet member is.
     # Login server, pre-auth key and the bridge shortcut to headscale all
