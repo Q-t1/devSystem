@@ -72,6 +72,10 @@
       baseDomain = "ts.qt1.fr";
       # Combined with microvmHost.adminSshKeys above for root on this guest.
       adminSshKeys = [ ];
+      # Headscale's web UI, tailnet-only behind caddyInternal, at
+      # https://headplane.ts.qt1.fr/admin (headplane.url). See
+      # Qt1-Infrastructure's README.
+      headplane.enable = true;
     };
     # Fronts headscale with TLS; see Qt1-Infrastructure's README.
     guests.caddy = {
