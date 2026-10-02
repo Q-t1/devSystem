@@ -62,11 +62,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1790969587,
-        "narHash": "sha256-rG7dGp7oo6BbSrX3Mu0gXGT4pbqkMps3GNYvfm5K01o=",
+        "lastModified": 1790973660,
+        "narHash": "sha256-WCLzfwefoiDuU5bn7K7W/k99goKsPkoCn1QzFiyfksQ=",
         "owner": "Q-t1",
         "repo": "Desktop",
-        "rev": "8bc5a56ab41b1f9256038db0b85cf29c22e7aaa0",
+        "rev": "7bf38754e52374f4da1e9c6bade2cfef0de591ef",
         "type": "github"
       },
       "original": {
