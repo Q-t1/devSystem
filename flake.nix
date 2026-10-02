@@ -41,6 +41,26 @@
       url = "github:Q-t1/Qt1-Infrastructure";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Everything dedicated to the `desktop` workstation: its hardware and disko
+    # layout, Secure Boot/TPM2 boot chain, graphics, gaming, niri +
+    # DankMaterialShell and its user accounts. This flake only consumes its
+    # `nixosModules.default` (from config/profiles/desktop/configuration.nix)
+    # and `homeModules.default` (from that profile's home.nix); disko,
+    # lanzaboote, dms and niri-flake all live over there. `follows` keeps one
+    # nixpkgs and one home-manager per host.
+    configuration-manager = {
+      # A relative `path:` input cannot be used — it would resolve inside this
+      # flake's store copy. To iterate on a local checkout, pass
+      #   --override-input configuration-manager path:/home/qt1/configuration-manager
+      # The repo is named `Desktop` on GitHub; the input keeps the
+      # `configuration-manager` name it has in every doc here, and matches the
+      # local checkout at /home/qt1/configuration-manager.
+      url = "github:Q-t1/Desktop";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        home-manager.follows = "home-manager";
+      };
+    };
     flake-utils.url = "github:numtide/flake-utils";
   };
 

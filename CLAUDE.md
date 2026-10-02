@@ -171,12 +171,49 @@ Consequences worth remembering:
   cannot be used — it would resolve inside this flake's store copy — so local
   infra work is tested with `--override-input`, not by changing the URL.
 
+### The desktop host lives in a separate flake
+
+Everything dedicated to the `desktop` workstation — its hardware, disko layout,
+Secure Boot/TPM2 boot chain, GPU, audio, gaming, fonts, networking, its two
+user accounts and the niri + DankMaterialShell session — is **not in this
+repo**. It is the `configuration-manager` flake (a sibling checkout,
+`../configuration-manager`, `github:Q-t1/Desktop`). This repo
+only carries the layers every machine shares.
+
+`config/profiles/desktop/` is therefore tiny:
+`configuration.nix` imports `inputs.configuration-manager.nixosModules.default`
+and sets `networking.hostName` + `system.stateVersion`; `home.nix` imports
+`inputs.configuration-manager.homeModules.default` and picks the IDE's
+clipboard provider.
+
+Consequences worth remembering:
+
+- Host changes are made in the other repo, then pulled in with
+  `nix flake update configuration-manager` and applied with a normal
+  `nixos-rebuild switch --flake .#desktop` from here. To test uncommitted work,
+  add `--override-input configuration-manager path:/home/qt1/configuration-manager`.
+- `disko`, `lanzaboote`, `dms`, `dank-greeter` and `niri-flake` belong to that
+  flake, not this one; its modules close over their own inputs and read no `inputs` specialArg.
+  Don't reintroduce those inputs here.
+- `inputs.{nixpkgs,home-manager}.follows` keep one nixpkgs and one
+  home-manager on that host.
+- Unlike the other profiles, `desktop` has a **second user**: `cecile`. That
+  flake's NixOS module declares her `home-manager.users.cecile` itself, since
+  `mkNixos` here only wires Home Manager for `host.username`. She does *not*
+  get `config/common/home.nix` — no shared shell base, no coding IDE.
+- The input is `github:Q-t1/Desktop` — the repo was renamed on GitHub; the
+  input keeps the `configuration-manager` name used throughout these docs and
+  by the local checkout. As with the other sibling
+  flakes, a relative `path:` input cannot be used — local work is tested with
+  `--override-input`.
+
 ### Profile matrix
 
 | Profile   | System         | Kind  | Notes                                      |
 |-----------|----------------|-------|--------------------------------------------|
 | wsl       | x86_64-linux   | nixos | WSL2, Docker, Zen Browser, bleu rootCA     |
 | macos     | aarch64-darwin | home  | Determinate Nix on macOS, user `quentin`; coding-ide |
+| desktop   | x86_64-linux   | nixos | Workstation: Intel + NVIDIA, lanzaboote Secure Boot over TPM2-unlocked LUKS/LVM, niri + DankMaterialShell, Steam/gamescope; second user `cecile`; imports the configuration-manager flake |
 | homelab-1 | x86_64-linux   | nixos | Bare-metal server: static IP 192.168.1.230 + DNS + SSH; coding-ide; imports the Qt1-Infrastructure flake (microVM host; headscale, caddy, caddy-internal, monitoring guests; crowdsec; tailnet member) |
 
 ### Special args available in all modules
