@@ -211,7 +211,7 @@ Consequences worth remembering:
 
 | Profile   | System         | Kind  | Notes                                      |
 |-----------|----------------|-------|--------------------------------------------|
-| wsl       | x86_64-linux   | nixos | WSL2, Docker, Zen Browser, bleu rootCA     |
+| wsl       | x86_64-linux   | nixos | WSL2, Docker, Zen Browser, bleu rootCA, Tailscale |
 | macos     | aarch64-darwin | home  | Determinate Nix on macOS, user `quentin`; coding-ide |
 | desktop   | x86_64-linux   | nixos | Workstation: Intel + NVIDIA, lanzaboote Secure Boot over TPM2-unlocked LUKS/LVM, niri + DankMaterialShell, Steam/gamescope; second user `cecile`; imports the configuration-manager flake |
 | homelab-1 | x86_64-linux   | nixos | Bare-metal server: static IP 192.168.1.230 + DNS + SSH; coding-ide; imports the Qt1-Infrastructure flake (microVM host; headscale, caddy, caddy-internal, monitoring guests; crowdsec; tailnet member) |

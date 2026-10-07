@@ -18,6 +18,12 @@
     enableOnBoot = false;
   };
 
+  # Tailscale client. The daemon is the part that joins the mesh, and it also
+  # puts the `tailscale` CLI in systemPackages. Enrollment against our own
+  # headscale control server is a one-time manual step:
+  #   sudo tailscale up --login-server https://access.qt1.fr
+  services.tailscale.enable = true;
+
   # WSLg publishes its Wayland socket outside XDG_RUNTIME_DIR; link it in so
   # WAYLAND_DISPLAY=wayland-0 resolves. %t expands to /run/user/$UID.
   systemd.user.tmpfiles.rules = [
