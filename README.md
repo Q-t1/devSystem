@@ -58,8 +58,31 @@ sudo nixos-rebuild switch --flake .#homelab-1 \
   --override-input qt1-infrastructure path:/Users/quentin/Projects/Qt1-Infrastructure
 ~~~
 
-Provisioning the Cloudflare tunnel token, adding a guest, and the guest network
-layout are documented in that repo's README.
+Adding a guest, joining the tailnet, and the guest network layout are
+documented in that repo's README.
+
+## desktop: the workstation host
+
+Everything dedicated to the `desktop` workstation — hardware, disks, Secure
+Boot, GPU, gaming, the niri + DankMaterialShell session and its two user
+accounts — lives in the separate
+[configuration-manager](../configuration-manager) flake; this flake only
+carries the shared OS layers. `config/profiles/desktop/` just imports
+`inputs.configuration-manager.{nixosModules,homeModules}.default`.
+
+Pull a new revision in and switch as usual:
+
+~~~
+nix flake update configuration-manager
+sudo nixos-rebuild switch --flake .#desktop
+~~~
+
+To try an uncommitted change in that repo before pushing it:
+
+~~~
+sudo nixos-rebuild switch --flake .#desktop \
+  --override-input configuration-manager path:/home/qt1/configuration-manager
+~~~
 
 ## The coding IDE
 
@@ -118,5 +141,6 @@ nix build --print-out-paths '.#homeConfigurations.macos.activationPackage' \
 | Host      | System         | Kind  | Home Directory  |
 |-----------|----------------|-------|-----------------|
 | macos     | aarch64-darwin | home  | /Users/quentin  |
+| desktop   | x86_64-linux   | nixos | /home/qt1 (+ /home/cecile) |
 | homelab-1 | x86_64-linux   | nixos | /home/qt1       |
 | wsl       | x86_64-linux   | nixos | /home/qt1       |

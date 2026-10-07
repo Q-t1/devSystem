@@ -1,6 +1,10 @@
 { pkgs, lib, ... }:
 
 {
+  # The `coding` IDE (yazi + zellij + nixvim), on every profile; each one
+  # only sets `programs.codingIde.clipboardProvider` for its host.
+  imports = [ ../modules/coding-ide.nix ];
+
   # `man home-configuration.nix`. Off because building it makes Home Manager
   # render its whole option set into an `options.json` derivation that refers
   # to the nixpkgs store path without a proper string context — Nix warns on

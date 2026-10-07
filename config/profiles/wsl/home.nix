@@ -6,8 +6,7 @@
 }:
 
 {
-  imports = [ ../../modules/coding-ide.nix ];
-
+  # The `coding` IDE's clipboard (config/common/home.nix imports the IDE):
   # WSL reaches the Windows clipboard directly (WSLg Wayland with a clip.exe /
   # PowerShell fallback) rather than OSC 52.
   programs.codingIde.clipboardProvider = "wsl";

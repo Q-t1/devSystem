@@ -1,9 +1,4 @@
-{
-  inputs,
-  pkgs,
-  config,
-  ...
-}:
+{ inputs, pkgs, ... }:
 
 {
   imports = [
@@ -17,7 +12,7 @@
     ../../modules/user-qt1-server.nix
   ];
 
-  # coding-ide (see home.nix) pulls in the unfree `claude-code`.
+  # coding-ide (config/common/home.nix) pulls in the unfree `claude-code`.
   nixpkgs.config.allowUnfree = true;
 
   # Ghostty's terminfo entry, system-wide. config/common/home.nix already puts
@@ -60,6 +55,14 @@
     microvmHost = {
       enable = true;
       uplinkInterface = "enp2s0";
+      # homelab-1's own SSH host identity, trusted for root on every guest
+      # that exposes SSH by default — lets the host itself (not just a
+      # human's laptop) reach a guest as root, e.g. for troubleshooting from
+      # a `qt1` shell on this box without copying a personal private key
+      # onto the server.
+      adminSshKeys = [
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOU1fciGd3S4aJ7pnN10sMkKirklTuED/qhDbSmFdti root@nixos-foundation"
+      ];
     };
     guests.headscale = {
       enable = true;
@@ -67,33 +70,44 @@
       # Must differ from serverUrl's domain (see the option doc); ts.qt1.fr
       # is otherwise unused.
       baseDomain = "ts.qt1.fr";
-      # Same key user-qt1-server.nix already authorizes for qt1 on this
-      # host, reused here for root on the headscale guest.
-      adminSshKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDtASdfLMatnUWsdJIjIvIXqXrnmABAznN/6mji1/rzRLqrusduqahyi4htTRvOuue3vrhUqeywiRTNTpzthfhVqeF5WehE1wAPkbgGwAvxC8ltqLPza6KkfZF0WXdXj/MsKJDTJUwui+acbyJocuMz0teJOhURoaEetXzr+ffj6P9Txz7uX6KN8D2DYGi9WvG8QPdlF/89f5vtCx4GFrKkdSET+yNC3PEcf+X8wDoL+ztuvcTGLb4rC42NzLJ82VCAYZ6KS085s8GD+lcgU/jxpRUeCVoY7Ciym/VKs2oxVsyM45fP+d33BJmqV+WGgVLHz0T4y05HOS6CBLObbXZYLfDg7jNl/MVxVktNRfvPLr23z8IvUL1DR8lHIqc6jesFMe8W5PuaoxwzQIhRl8ywGT/rVq1btMiS41mqo/86pZAFtehTt04A3GbMVGB7NNO3tmaVbUlr/aSFdB/hLr0pU3uuZQsHCipZ/3+IGs7erU1r2VVNhnxd/JcDJEVstd8= quentin@MacBook-Air-de-Quentin.local";
+      # Combined with microvmHost.adminSshKeys above for root on this guest.
+      adminSshKeys = [ ];
+      # Headscale's web UI, tailnet-only behind caddyInternal, at
+      # https://headplane.ts.qt1.fr/admin (headplane.url). See
+      # Qt1-Infrastructure's README.
+      headplane.enable = true;
     };
     # Fronts headscale with TLS; see Qt1-Infrastructure's README.
     guests.caddy = {
       enable = true;
       letsEncryptEmail = "quentin.roccia@gmail.com";
     };
+    # Watches caddy's access log and bans offenders at the host firewall;
+    # see Qt1-Infrastructure's README, "Protecting caddy".
+    crowdsec.enable = true;
+    # Tailnet-only reverse proxy for internal apps, each at its own
+    # MagicDNS name (<label>.ts.qt1.fr); see Qt1-Infrastructure's README,
+    # "caddy-internal guest".
+    guests.caddyInternal.enable = true;
+    # Loki+Prometheus+Grafana, behind caddyInternal: reachable only over the
+    # tailnet, at http://grafana.ts.qt1.fr/ (grafanaUrl). See
+    # Qt1-Infrastructure's README, "monitoring guest".
+    guests.monitoring.enable = true;
+    # Public status page, served by caddy at https://status.qt1.fr/ (needs
+    # the DNS record, like access.qt1.fr). Checks headscale and every
+    # caddyInternal app on its own; see Qt1-Infrastructure's README, "gatus
+    # guest".
+    guests.gatus = {
+      enable = true;
+      hostname = "status.qt1.fr";
+    };
     # Join the host itself to its own tailnet, so it's reachable over
     # Tailscale (e.g. for SSH) the same way any other tailnet member is.
-    # See Qt1-Infrastructure's README, "Joining the tailnet".
-    tailscaleClient = {
-      enable = true;
-      loginServerUrl = config.qt1.infra.guests.headscale.serverUrl;
-      authKeyFile = config.qt1.infra.guests.headscale.tailscaleAuthKeyFile;
-    };
+    # Login server, pre-auth key and the bridge shortcut to headscale all
+    # default to the guests above; see Qt1-Infrastructure's README, "Joining
+    # the tailnet".
+    tailscaleClient.enable = true;
   };
-
-  # Bridge-local shortcut for the tailscaleClient join above: resolves
-  # serverUrl's hostname straight to the caddy guest's bridge address
-  # (caddy holds the TLS cert now, not headscale) instead of out through
-  # the WAN and back in via the router's port forward (NAT hairpinning,
-  # which not every router supports reliably).
-  networking.hosts.${config.qt1.infra.guests.caddy.address} = [
-    config.qt1.infra.guests.headscale.tlsHostname
-  ];
 
   system.stateVersion = "26.05";
 }
