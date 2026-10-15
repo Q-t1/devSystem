@@ -23,6 +23,9 @@
   imports = [ inputs.codide.homeModules.default ];
 
   programs.codingIde = {
+    # Importing the module alone does nothing; every profile gets the IDE.
+    enable = true;
+
     claudeCode.package = pkgs.claude-code;
 
     # Scoped to *this* profile's own config since the module is shared across
