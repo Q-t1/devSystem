@@ -21,9 +21,27 @@
     kubeconform
     openssl
     fluxcd
+    git-credential-manager
   ];
 
   programs.git.settings.user.email = lib.mkForce "quentin.roccia@bleucloud.fr";
+  programs.git.settings.credential = {
+    helper = "manager";
+    azreposCredentialType = "oauth";
+    # GCM on Linux needs an explicit store; keep credentials in memory.
+    credentialStore = "cache";
+    # Normally written by `git-credential-manager configure`; lets GCM read the
+    # org name from the URL path.
+    "https://dev.azure.com".useHttpPath = true;
+    # GCM writes these to the global config at runtime, which home-manager makes
+    # read-only, so pin them here. Bind the bleucloud org to this account (GCM
+    # ignores the `bleucloud@` in clone URLs since it's just the org name), and
+    # pre-seed its Entra tenant (from the org's `x-vss-resourcetenant` header).
+    "azrepos:org/bleucloud" = {
+      username = "quentin.roccia@bleucloud.fr";
+      azureAuthority = "https://login.microsoftonline.com/1e28a902-ddbd-4e5d-afc8-4f273a735d06";
+    };
+  };
 
   programs.firefox = {
     enable = true;
