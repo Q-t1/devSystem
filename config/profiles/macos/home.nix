@@ -13,6 +13,7 @@
   # Homebrew itself stays installed: it still carries `rtk` (a custom tap with
   # no nixpkgs equivalent) and the GUI casks.
   home.packages = with pkgs; [
+    android-tools # adb + fastboot; macOS needs no USB drivers or udev rules
     nodejs_26
     p7zip
     uv
